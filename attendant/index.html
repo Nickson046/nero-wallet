@@ -317,7 +317,8 @@ button{cursor:pointer;font-family:var(--font-b);}
 
 <script type="module">
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+         setPersistence, browserSessionPersistence }
   from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc, addDoc, collection,
          increment, serverTimestamp, runTransaction }
@@ -350,7 +351,8 @@ onAuthStateChanged(auth, async user => {
     const snap = await getDoc(doc(db,"attendants",user.uid));
     if (snap.exists()) {
       _attendant = { uid: user.uid, ...snap.data() };
-      document.getElementById("attNamePill").textContent = _attendant.name || "Attendant";
+      document.getElementById("attNamePill").textContent = `${_attendant.name||"Attendant"} · ${_attendant.attendantId||""}`;
+
       showScreen("app");
       loadPrices();
       initScanner();
@@ -371,8 +373,10 @@ window.attLogin = async () => {
   const btn = document.getElementById("authBtn");
   btn.disabled=true; btn.textContent="Signing in…";
   try {
+    await setPersistence(auth, browserSessionPersistence);
     /* Attendant login — ID is their email or phone converted to email */
-    const email = id.includes("@") ? id : `att_${id.replace(/\s/g,"")}@nero-wallet.app`;
+    /* Same email format as manager creates — strip spaces, +, -, () */
+    const email = id.includes("@") ? id : `att_${id.replace(/[\s+\-()]/g,"")}@nero-wallet.app`;
     await signInWithEmailAndPassword(auth, email, pin + "_att");
   } catch(e) {
     showErr(err,"Incorrect ID or PIN. Contact your manager.");

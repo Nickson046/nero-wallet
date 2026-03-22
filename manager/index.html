@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NERO Manager Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<!-- Chart.js for graphs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --red:#e8000d;--red-dark:#b0000a;--black:#0a0a0a;--dark:#111111;
+  --dark2:#1a1a1a;--dark3:#222222;--muted:#888888;--white:#ffffff;
+  --green:#22c55e;--amber:#f59e0b;--blue:#3b82f6;--purple:#8b5cf6;
+  --font-h:'Barlow Condensed',sans-serif;--font-b:'Barlow',sans-serif;--r:10px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-b);background:var(--black);color:var(--white);min-height:100vh;display:flex;}
+button{cursor:pointer;font-family:var(--font-b);}
+input,select,textarea{font-family:var(--font-b);}
+
+/* ── AUTH OVERLAY ── */
+#authOverlay{position:fixed;inset:0;background:var(--black);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.auth-box{width:100%;max-width:380px;background:var(--dark);border:1px solid rgba(255,255,255,.07);border-top:3px solid var(--red);border-radius:var(--r);padding:2.5rem 2rem;display:flex;flex-direction:column;gap:1.25rem;}
+.auth-logo{font-family:var(--font-h);font-size:1.8rem;font-weight:900;color:var(--white);text-align:center;}
+.auth-logo span{color:var(--red);}
+.auth-sub{font-family:var(--font-h);font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:center;margin-top:-.75rem;}
+.auth-field{display:flex;flex-direction:column;gap:.4rem;}
+.auth-field label{font-family:var(--font-h);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.auth-field input{background:var(--dark2);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);padding:.85rem 1rem;font-size:1rem;width:100%;transition:border-color .25s;}
+.auth-field input:focus{outline:none;border-color:var(--red);}
+.auth-btn{background:var(--red);color:#fff;border:none;border-radius:6px;padding:.9rem;font-family:var(--font-h);font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;transition:background .25s;}
+.auth-btn:hover{background:var(--red-dark);}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed;}
+.auth-err{background:rgba(255,50,50,.08);border:1px solid rgba(255,50,50,.25);border-radius:6px;padding:.65rem 1rem;font-size:.85rem;color:#ff5555;text-align:center;display:none;}
+
+/* ── DASHBOARD WRAP ── */
+#dashboard-wrap{display:none;width:100%;flex:1;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:230px;background:var(--dark);border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto;}
+.sidebar-logo{padding:1.25rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+.sidebar-logo-text{font-family:var(--font-h);font-size:1.3rem;font-weight:900;letter-spacing:.08em;color:var(--white);}
+.sidebar-logo-text span{color:var(--red);}
+.sidebar-sub{font-family:var(--font-h);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:.15rem;}
+.nav-section{font-family:var(--font-h);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.2);padding:.85rem 1.5rem .3rem;margin-top:.5rem;}
+.nav-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1.5rem;font-family:var(--font-h);font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);cursor:pointer;transition:all .2s;border-left:3px solid transparent;}
+.nav-item:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
+.nav-item.active{color:var(--white);background:rgba(232,0,13,.08);border-left-color:var(--red);}
+.nav-icon{font-size:1rem;width:18px;text-align:center;flex-shrink:0;}
+.sidebar-footer{padding:1.1rem 1.5rem;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;margin-top:auto;}
+.mgr-pill{font-size:.78rem;color:var(--muted);margin-bottom:.65rem;line-height:1.5;}
+.mgr-pill strong{color:var(--white);display:block;}
+.logout-btn{width:100%;background:transparent;border:1px solid rgba(232,0,13,.3);color:rgba(232,0,13,.7);padding:.5rem;border-radius:4px;font-family:var(--font-h);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;transition:all .2s;}
+.logout-btn:hover{background:rgba(232,0,13,.1);border-color:var(--red);color:var(--red);}
+
+/* ── MAIN ── */
+.main{margin-left:230px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{background:var(--dark);border-bottom:1px solid rgba(255,255,255,.06);padding:.85rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.page-title{font-family:var(--font-h);font-size:1.4rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--white);}
+.topbar-right{display:flex;align-items:center;gap:1rem;}
+.live-badge{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:100px;padding:.3rem .85rem;font-family:var(--font-h);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;color:var(--green);display:flex;align-items:center;gap:.4rem;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:livepulse 2s infinite;}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.35}}
+.refresh-btn{background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:.35rem .75rem;font-family:var(--font-h);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);transition:all .2s;}
+.refresh-btn:hover{border-color:rgba(255,255,255,.3);color:var(--white);}
+
+/* ── CONTENT ── */
+.content{padding:1.75rem;flex:1;}
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;}
+.stat-card{background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:1.35rem;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent,var(--red));}
+.stat-card.green{--accent:var(--green);}
+.stat-card.blue{--accent:var(--blue);}
+.stat-card.amber{--accent:var(--amber);}
+.stat-card.purple{--accent:var(--purple);}
+.stat-label{font-family:var(--font-h);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;}
+.stat-value{font-family:var(--font-h);font-size:1.6rem;font-weight:900;color:var(--white);line-height:1;margin-bottom:.3rem;}
+.stat-sub{font-size:.75rem;color:var(--muted);}
+.stat-change{font-family:var(--font-h);font-size:.72rem;font-weight:700;margin-top:.3rem;}
+.stat-change.up{color:var(--green);}
+.stat-change.down{color:var(--red);}
+
+/* ── CHART CARDS ── */
+.chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+.chart-card{background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:1.35rem;}
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+.chart-title{font-family:var(--font-h);font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.chart-period{display:flex;gap:.35rem;}
+.period-btn{background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:.3rem .65rem;font-family:var(--font-h);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.35);transition:all .2s;}
+.period-btn.active,.period-btn:hover{background:rgba(232,0,13,.1);border-color:var(--red);color:var(--white);}
+
+/* ── TABLE ── */
+.table-wrap{background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);overflow:hidden;margin-bottom:1.25rem;}
+.table-head{padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;}
+.table-title{font-family:var(--font-h);font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.table-actions{display:flex;gap:.5rem;flex-wrap:wrap;}
+.tbl-btn{background:var(--dark2);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:.4rem .85rem;font-family:var(--font-h);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);transition:all .2s;white-space:nowrap;}
+.tbl-btn:hover{border-color:rgba(255,255,255,.2);color:var(--white);}
+.tbl-btn.red{border-color:rgba(232,0,13,.3);color:var(--red);}
+.tbl-btn.red:hover{background:rgba(232,0,13,.1);}
+.tbl-btn.green{border-color:rgba(34,197,94,.3);color:var(--green);}
+.tbl-btn.green:hover{background:rgba(34,197,94,.1);}
+.tbl-btn.blue{border-color:rgba(59,130,246,.3);color:var(--blue);}
+.tbl-btn.blue:hover{background:rgba(59,130,246,.1);}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:.75rem 1.25rem;text-align:left;font-family:var(--font-h);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap;}
+tbody td{padding:.8rem 1.25rem;font-size:.85rem;color:rgba(255,255,255,.7);border-bottom:1px solid rgba(255,255,255,.04);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:rgba(255,255,255,.02);}
+.loading-row td{text-align:center;padding:2.5rem;color:var(--muted);}
+.amount-cell{font-family:var(--font-h);font-size:.92rem;font-weight:700;}
+.amount-cell.neg{color:var(--red);}
+.amount-cell.pos{color:var(--green);}
+.badge{display:inline-block;font-family:var(--font-h);font-size:.63rem;letter-spacing:.08em;text-transform:uppercase;padding:.2rem .55rem;border-radius:4px;white-space:nowrap;}
+.badge.success{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2);}
+.badge.pending{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2);}
+.badge.failed{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+.badge.refunded{background:rgba(139,92,246,.1);color:var(--purple);border:1px solid rgba(139,92,246,.2);}
+.badge.deduct{background:rgba(232,0,13,.08);color:var(--red);border:1px solid rgba(232,0,13,.15);}
+.badge.topup{background:rgba(34,197,94,.08);color:var(--green);border:1px solid rgba(34,197,94,.15);}
+.badge.cash_topup{background:rgba(245,158,11,.08);color:var(--amber);border:1px solid rgba(245,158,11,.15);}
+.badge.refund{background:rgba(139,92,246,.08);color:var(--purple);border:1px solid rgba(139,92,246,.15);}
+.badge.suspended{background:rgba(239,68,68,.08);color:#ef4444;border:1px solid rgba(239,68,68,.15);}
+.badge.active{background:rgba(34,197,94,.08);color:var(--green);border:1px solid rgba(34,197,94,.15);}
+
+/* ── FILTER ROW ── */
+.filter-row{display:flex;gap:.65rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.filter-select,.filter-input{background:var(--dark);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);padding:.5rem .9rem;font-size:.85rem;}
+.filter-input{width:200px;}
+.filter-input::placeholder{color:var(--muted);}
+
+/* ── FORMS ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.field{display:flex;flex-direction:column;gap:.4rem;margin-bottom:.85rem;}
+.field label{font-family:var(--font-h);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+.field input,.field select,.field textarea{background:var(--dark2);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);padding:.8rem 1rem;font-size:.92rem;width:100%;transition:border-color .25s;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--red);}
+.field textarea{resize:vertical;min-height:80px;}
+.form-panel{background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:1.75rem;margin-bottom:1.25rem;}
+.form-panel h3{font-family:var(--font-h);font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--white);margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid rgba(255,255,255,.06);}
+.btn-primary{background:var(--red);color:#fff;border:none;border-radius:6px;padding:.8rem 1.75rem;font-family:var(--font-h);font-size:.88rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;transition:background .25s;}
+.btn-primary:hover{background:var(--red-dark);}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;}
+.btn-green{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.25);border-radius:6px;padding:.8rem 1.75rem;font-family:var(--font-h);font-size:.88rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;transition:all .25s;}
+.btn-green:hover{background:rgba(34,197,94,.2);}
+.err{background:rgba(255,50,50,.08);border:1px solid rgba(255,50,50,.25);border-radius:6px;padding:.6rem 1rem;font-size:.83rem;color:#ff5555;margin-bottom:.85rem;display:none;}
+.info-box{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:.85rem;color:rgba(255,255,255,.6);line-height:1.6;}
+
+/* ── BALANCE BOX ── */
+.balance-box{background:linear-gradient(135deg,rgba(232,0,13,.08),rgba(0,0,0,.3));border:1px solid rgba(232,0,13,.2);border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;}
+.balance-box-label{font-family:var(--font-h);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.balance-box-value{font-family:var(--font-h);font-size:2rem;font-weight:900;color:var(--white);}
+.balance-box-sub{font-size:.75rem;color:var(--muted);margin-top:.3rem;line-height:1.5;}
+
+/* ── CUSTOMER DETAIL CARD ── */
+.cust-detail-card{background:var(--dark);border:1px solid rgba(255,255,255,.08);border-radius:var(--r);padding:1.5rem;margin-bottom:1rem;}
+.cust-detail-header{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;}
+.cust-avatar{width:52px;height:52px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:1.4rem;font-weight:900;flex-shrink:0;}
+.cust-detail-name{font-family:var(--font-h);font-size:1.3rem;font-weight:700;color:var(--white);}
+.cust-detail-meta{font-size:.8rem;color:var(--muted);}
+.detail-row{display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.85rem;}
+.detail-row:last-child{border-bottom:none;}
+.detail-label{color:var(--muted);}
+.detail-value{color:var(--white);font-weight:500;}
+
+/* ── AUDIT LOG COLORS ── */
+.audit-action{font-family:var(--font-h);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;}
+.audit-action.topup{color:var(--green);}
+.audit-action.deduct{color:var(--red);}
+.audit-action.refund{color:var(--purple);}
+.audit-action.suspend{color:var(--amber);}
+.audit-action.withdraw{color:var(--blue);}
+.audit-action.login{color:rgba(255,255,255,.4);}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:500;display:none;align-items:center;justify-content:center;padding:1.5rem;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--dark);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);padding:2rem;width:100%;max-width:480px;position:relative;}
+.modal-title{font-family:var(--font-h);font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--white);margin-bottom:1.25rem;}
+.modal-close{position:absolute;top:1rem;right:1.25rem;background:transparent;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--white);}
+
+/* ── RECEIPT ── */
+.receipt{background:#fff;color:#111;border-radius:8px;padding:1.5rem;font-family:monospace;font-size:.82rem;line-height:1.8;max-width:320px;margin:0 auto;}
+.receipt-logo{font-family:var(--font-h);font-size:1.4rem;font-weight:900;text-align:center;color:#e8000d;margin-bottom:.25rem;}
+.receipt-title{text-align:center;font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;color:#888;margin-bottom:1rem;}
+.receipt-divider{border:none;border-top:1px dashed #ccc;margin:.75rem 0;}
+.receipt-row{display:flex;justify-content:space-between;}
+.receipt-total{font-weight:700;font-size:.95rem;border-top:2px solid #111;margin-top:.5rem;padding-top:.5rem;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:2rem;right:2rem;background:var(--dark);border:1px solid rgba(34,197,94,.3);border-left:3px solid var(--green);border-radius:8px;padding:.75rem 1.25rem;font-family:var(--font-h);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--green);box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:9999;opacity:0;transform:translateY(20px);transition:all .35s cubic-bezier(.34,1.56,.64,1);max-width:340px;}
+#toast.show{opacity:1;transform:translateY(0);}
+#toast.error{border-left-color:#ef4444;border-color:rgba(239,68,68,.3);color:#ef4444;}
+#toast.amber{border-left-color:var(--amber);border-color:rgba(245,158,11,.3);color:var(--amber);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr);}.chart-grid{grid-template-columns:1fr;}}
+@media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;}}
+@media print{.sidebar,.topbar,.modal-bg,#toast{display:none!important;}.main{margin-left:0;}.receipt{box-shadow:none;}}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH ══ -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-logo">NE<span>RO</span></div>
+    <div class="auth-sub">Manager Dashboard</div>
+    <div class="auth-field"><label>Email</label><input type="email" id="mgrEmail" placeholder="manager@nero.com" autocomplete="email"></div>
+    <div class="auth-field"><label>Password</label><input type="password" id="mgrPass" placeholder="••••••••" autocomplete="current-password"></div>
+    <div class="auth-err" id="mgrAuthErr"></div>
+    <button class="auth-btn" id="mgrLoginBtn" onclick="mgrLogin()">Sign In</button>
+    <p style="font-size:.72rem;color:rgba(255,255,255,.2);text-align:center;">NERO Station Management Portal</p>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div id="dashboard-wrap">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-text">NE<span>RO</span></div>
+    <div class="sidebar-sub">Manager Portal</div>
+  </div>
+  <nav class="sidebar-nav" style="flex:1;padding:.5rem 0;">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="showPanel('overview')"><span class="nav-icon">📊</span>Overview</div>
+    <div class="nav-item" onclick="showPanel('reports')"><span class="nav-icon">📈</span>Reports</div>
+
+    <div class="nav-section">Transactions</div>
+    <div class="nav-item" onclick="showPanel('transactions')"><span class="nav-icon">💳</span>All Transactions</div>
+    <div class="nav-item" onclick="showPanel('topups')"><span class="nav-icon">⬆️</span>Top-Ups</div>
+    <div class="nav-item" onclick="showPanel('refunds')"><span class="nav-icon">↩️</span>Refunds</div>
+
+    <div class="nav-section">Accounts</div>
+    <div class="nav-item" onclick="showPanel('customers')"><span class="nav-icon">👥</span>Customers</div>
+    <div class="nav-item" onclick="showPanel('attendants')"><span class="nav-icon">👷</span>Attendants</div>
+
+    <div class="nav-section">Finance</div>
+    <div class="nav-item" onclick="showPanel('withdraw')"><span class="nav-icon">🏦</span>Withdraw Funds</div>
+    <div class="nav-item" onclick="showPanel('prices')"><span class="nav-icon">⛽</span>Fuel Prices</div>
+
+    <div class="nav-section">System</div>
+    <div class="nav-item" onclick="showPanel('audit')"><span class="nav-icon">🔍</span>Audit Log</div>
+    <div class="nav-item" onclick="showPanel('settings')"><span class="nav-icon">⚙️</span>Settings</div>
+    <div class="nav-item" onclick="showPanel('debug')"><span class="nav-icon">🔧</span>Debug</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="mgr-pill">Signed in as<strong id="mgrName">—</strong></div>
+    <button class="logout-btn" onclick="mgrLogout()">⏻ Sign Out</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Overview</div>
+    <div class="topbar-right">
+      <div class="live-badge"><div class="live-dot"></div>Live</div>
+      <button class="refresh-btn" onclick="refreshCurrentPanel()">↻ Refresh</button>
+      <div style="font-size:.78rem;color:var(--muted);" id="lastRefresh">—</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ════════════ OVERVIEW ════════════ -->
+    <div class="panel active" id="panel-overview">
+
+      <div class="stats-grid">
+        <div class="stat-card red">
+          <div class="stat-label">Customer Wallet Balances</div>
+          <div class="stat-value" id="ov-total-bal">UGX —</div>
+          <div class="stat-sub">Total held in wallets</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Today's Top-Ups</div>
+          <div class="stat-value" id="ov-topups-today">UGX —</div>
+          <div class="stat-sub" id="ov-topup-count">— transactions</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Today's Fuel Sales</div>
+          <div class="stat-value" id="ov-sales-today">UGX —</div>
+          <div class="stat-sub" id="ov-sales-count">— deductions</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-label">Active Customers</div>
+          <div class="stat-value" id="ov-customers">—</div>
+          <div class="stat-sub" id="ov-low-balance">— low balance alerts</div>
+        </div>
+      </div>
+
+      <!-- Station breakdown -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;">
+        <div class="stat-card" id="station-kiwoko" style="--accent:var(--amber);">
+          <div class="stat-label">Kiwoko — Today</div>
+          <div class="stat-value" id="st-kiwoko-sales">UGX —</div>
+          <div class="stat-sub" id="st-kiwoko-count">— transactions</div>
+        </div>
+        <div class="stat-card" id="station-nakaseke" style="--accent:var(--blue);">
+          <div class="stat-label">Nakaseke — Today</div>
+          <div class="stat-value" id="st-nakaseke-sales">UGX —</div>
+          <div class="stat-sub" id="st-nakaseke-count">— transactions</div>
+        </div>
+        <div class="stat-card" id="station-butalangu" style="--accent:var(--green);">
+          <div class="stat-label">Butalangu — Today</div>
+          <div class="stat-value" id="st-butalangu-sales">UGX —</div>
+          <div class="stat-sub" id="st-butalangu-count">— transactions</div>
+        </div>
+      </div>
+
+      <!-- Recent transactions -->
+      <div class="table-wrap">
+        <div class="table-head">
+          <div class="table-title">Recent Activity</div>
+          <div class="table-actions">
+            <button class="tbl-btn" onclick="showPanel('transactions')">View All →</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Time</th><th>Customer</th><th>Type</th><th>Amount</th><th>Station</th><th>Attendant</th><th>Status</th></tr></thead>
+          <tbody id="ov-tx-body"><tr class="loading-row"><td colspan="7">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Low balance alerts -->
+      <div class="table-wrap">
+        <div class="table-head">
+          <div class="table-title">⚠️ Low Balance Alerts</div>
+          <div style="font-size:.78rem;color:var(--muted);">Customers with balance below UGX 10,000</div>
+        </div>
+        <table>
+          <thead><tr><th>Account</th><th>Name</th><th>Phone</th><th>Balance</th><th>Action</th></tr></thead>
+          <tbody id="low-balance-body"><tr class="loading-row"><td colspan="5">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════════ REPORTS ════════════ -->
+    <div class="panel" id="panel-reports">
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div class="chart-title">Revenue Over Time</div>
+            <div class="chart-period">
+              <button class="period-btn active" onclick="loadChart('7d',this)">7D</button>
+              <button class="period-btn" onclick="loadChart('30d',this)">30D</button>
+              <button class="period-btn" onclick="loadChart('90d',this)">90D</button>
+            </div>
+          </div>
+          <canvas id="revenueChart" height="80"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div class="chart-title">Station Split</div>
+          </div>
+          <canvas id="stationChart" height="160"></canvas>
+        </div>
+      </div>
+      <div class="chart-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="chart-card">
+          <div class="chart-head"><div class="chart-title">Petrol vs Diesel</div></div>
+          <canvas id="fuelChart" height="140"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head"><div class="chart-title">Top-Up Methods</div></div>
+          <canvas id="methodChart" height="140"></canvas>
+        </div>
+      </div>
+      <div class="form-panel">
+        <h3>📥 Download Reports</h3>
+        <div class="form-grid">
+          <div class="field"><label>Report Type</label>
+            <select id="reportType">
+              <option value="transactions">All Transactions</option>
+              <option value="topups">Top-Ups Only</option>
+              <option value="deductions">Fuel Deductions Only</option>
+              <option value="customers">Customer Balances</option>
+              <option value="attendants">Attendant Activity</option>
+            </select>
+          </div>
+          <div class="field"><label>Date Range</label>
+            <select id="reportRange">
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="all">All Time</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="downloadReport()">📥 Download CSV</button>
+      </div>
+    </div>
+
+    <!-- ════════════ TRANSACTIONS ════════════ -->
+    <div class="panel" id="panel-transactions">
+      <div class="filter-row">
+        <select class="filter-select" id="txType" onchange="loadTransactions()">
+          <option value="">All Types</option>
+          <option value="topup">Top-Up</option>
+          <option value="deduct">Deduction</option>
+          <option value="refund">Refund</option>
+          <option value="cash_topup">Cash Top-Up</option>
+        </select>
+        <select class="filter-select" id="txStation" onchange="loadTransactions()">
+          <option value="">All Stations</option>
+          <option value="kiwoko">Kiwoko</option>
+          <option value="nakaseke">Nakaseke</option>
+          <option value="butalangu">Butalangu</option>
+        </select>
+        <input class="filter-input" type="date" id="txDate" onchange="loadTransactions()">
+        <input class="filter-input" placeholder="Search account #…" id="txSearch" oninput="loadTransactions()" style="width:160px;">
+        <button class="tbl-btn" onclick="downloadReport()">📥 CSV</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head"><div class="table-title">All Transactions</div><div id="tx-count" style="font-size:.78rem;color:var(--muted);"></div></div>
+        <table>
+          <thead><tr><th>Ref</th><th>Time</th><th>Account</th><th>Type</th><th>Fuel</th><th>Litres</th><th>Amount</th><th>Bal After</th><th>Attendant</th><th>Station</th><th>Actions</th></tr></thead>
+          <tbody id="tx-body"><tr class="loading-row"><td colspan="11">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════════ TOP-UPS ════════════ -->
+    <div class="panel" id="panel-topups">
+      <div class="form-panel">
+        <h3>💵 Add Cash Top-Up</h3>
+        <div class="info-box">Use this when a customer pays cash at the station counter. This adds funds directly to their NERO wallet.</div>
+        <div class="form-grid">
+          <div class="field"><label>Account Number</label><input type="text" id="cashAccNum" placeholder="NRO…" style="text-transform:uppercase;"></div>
+          <div class="field"><label>Amount (UGX)</label><input type="number" id="cashAmount" placeholder="e.g. 50000" inputmode="numeric"></div>
+        </div>
+        <div class="field"><label>Note (optional)</label><input type="text" id="cashNote" placeholder="e.g. Cash payment at Kiwoko counter"></div>
+        <div class="err" id="cashErr"></div>
+        <button class="btn-green" onclick="cashTopup()">✓ Add Funds to Wallet</button>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head"><div class="table-title">All Top-Up History</div></div>
+        <table>
+          <thead><tr><th>Ref</th><th>Time</th><th>Account</th><th>Method</th><th>Amount</th><th>Status</th><th>Note</th></tr></thead>
+          <tbody id="topup-body"><tr class="loading-row"><td colspan="7">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════════ REFUNDS ════════════ -->
+    <div class="panel" id="panel-refunds">
+      <div class="form-panel">
+        <h3>↩️ Issue a Refund</h3>
+        <div class="info-box">
+          Refunds return money to a customer's wallet balance. Use this when fuel was incorrectly deducted or a transaction needs to be reversed. Every refund is logged permanently.
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Transaction Reference</label><input type="text" id="refundTxRef" placeholder="TX… or transaction ID"></div>
+          <div class="field"><label>Customer Account #</label><input type="text" id="refundAccNum" placeholder="NRO…" style="text-transform:uppercase;"></div>
+        </div>
+        <div class="field"><label>Refund Amount (UGX)</label><input type="number" id="refundAmount" placeholder="Amount to refund" inputmode="numeric"></div>
+        <div class="field"><label>Reason for Refund</label>
+          <select id="refundReason">
+            <option value="wrong_deduction">Wrong amount deducted</option>
+            <option value="pump_fault">Pump malfunction — fuel not dispensed</option>
+            <option value="customer_request">Customer request / complaint</option>
+            <option value="duplicate">Duplicate transaction</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Additional Notes</label><textarea id="refundNotes" placeholder="Describe what happened…"></textarea></div>
+        <div class="err" id="refundErr"></div>
+        <button class="btn-primary" onclick="issueRefund()">Issue Refund</button>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head"><div class="table-title">Refund History</div></div>
+        <table>
+          <thead><tr><th>Date</th><th>Account</th><th>Amount</th><th>Reason</th><th>Issued By</th><th>Original Ref</th></tr></thead>
+          <tbody id="refund-body"><tr class="loading-row"><td colspan="6">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════════ CUSTOMERS ════════════ -->
+    <div class="panel" id="panel-customers">
+      <div class="filter-row">
+        <input class="filter-input" type="text" id="custSearch" placeholder="Search name, phone, account…" oninput="loadCustomers()" style="width:240px;">
+        <select class="filter-select" id="custStatus" onchange="loadCustomers()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+
+      <!-- Customer detail (hidden until row clicked) -->
+      <div id="custDetailWrap" style="display:none;margin-bottom:1.25rem;">
+        <div class="cust-detail-card">
+          <div class="cust-detail-header">
+            <div class="cust-avatar" id="cdAvatar">?</div>
+            <div>
+              <div class="cust-detail-name" id="cdName">—</div>
+              <div class="cust-detail-meta" id="cdMeta">—</div>
+            </div>
+          </div>
+          <div class="detail-row"><span class="detail-label">Account Number</span><span class="detail-value" id="cdAccNum">—</span></div>
+          <div class="detail-row"><span class="detail-label">Balance</span><span class="detail-value" style="color:var(--red);font-family:var(--font-h);font-size:1.1rem;" id="cdBalance">—</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value" id="cdStatus">—</span></div>
+          <div class="detail-row"><span class="detail-label">Joined</span><span class="detail-value" id="cdJoined">—</span></div>
+          <div class="detail-row"><span class="detail-label">Last Activity</span><span class="detail-value" id="cdLastActivity">—</span></div>
+          <div style="display:flex;gap:.65rem;margin-top:1rem;flex-wrap:wrap;">
+            <button class="tbl-btn green" id="cdTopupBtn" onclick="quickTopupCustomer()">+ Add Funds</button>
+            <button class="tbl-btn blue" onclick="viewCustomerTx()">View Transactions</button>
+            <button class="tbl-btn red" id="cdSuspendBtn" onclick="toggleSuspend()">Suspend</button>
+            <button class="tbl-btn" onclick="document.getElementById('custDetailWrap').style.display='none'">Close ✕</button>
+          </div>
+        </div>
+        <!-- Customer transactions -->
+        <div class="table-wrap" id="cdTxWrap" style="display:none;">
+          <div class="table-head"><div class="table-title">Transaction History</div></div>
+          <table>
+            <thead><tr><th>Time</th><th>Type</th><th>Amount</th><th>Bal After</th><th>Station</th></tr></thead>
+            <tbody id="cd-tx-body"><tr class="loading-row"><td colspan="5">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head"><div class="table-title">All Customers</div><div id="cust-count" style="font-size:.78rem;color:var(--muted);"></div></div>
+        <table>
+          <thead><tr><th>Account #</th><th>Name</th><th>Phone</th><th>Balance</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody id="cust-body"><tr class="loading-row"><td colspan="7">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════════ ATTENDANTS ════════════ -->
+    <div class="panel" id="panel-attendants">
+      <div class="form-panel" id="addAttWrap">
+        <h3>➕ Add New Attendant</h3>
+        <div class="form-grid">
+          <div class="field"><label>Full Name</label><input type="text" id="attName" placeholder="e.g. Peter Ssemakula"></div>
+          <div class="field"><label>Phone</label><input type="tel" id="attPhone" placeholder="+256 7XX XXX XXX"></div>
+          <div class="field"><label>Station</label>
+            <select id="attStation">
+              <option value="kiwoko">NERO Kiwoko</option>
+              <option value="nakaseke">NERO Nakaseke</option>
+              <option value="butalangu">NERO Butalangu</option>
+            </select>
+          </div>
+          <div class="field"><label>Temporary PIN (4 digits)</label><input type="text" id="attPin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric"></div>
+        </div>
+        <div class="err" id="attErr"></div>
+        <button class="btn-primary" onclick="addAttendant()">Create Attendant Account</button>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head">
+          <div class="table-title">All Attendants</div>
+          <div class="table-actions"><button class="tbl-btn" onclick="loadAttendantActivity()">Load Activity</button></div>
+        </div>
+        <table>
+          <thead><tr><th>Attendant ID</th><th>Name</th><th>Phone</th><th>Station</th><th>Status</th><th>Tx Today</th><th>Actions</th></tr></thead>
+          <tbody id="att-body"><tr class="loading-row"><td colspan="6">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════════ WITHDRAW ════════════ -->
+    <div class="panel" id="panel-withdraw">
+      <div class="balance-box">
+        <div class="balance-box-label">Company Wallet Balance</div>
+        <div class="balance-box-value" id="companyBalance">UGX —</div>
+        <div class="balance-box-sub">
+          Sum of all customer top-ups minus all fuel deductions.<br>
+          This money is held in your Flutterwave account and can be withdrawn to your bank or MTN MoMo.
+        </div>
+      </div>
+
+      <div class="form-panel">
+        <h3>🏦 Request Withdrawal</h3>
+        <div class="info-box">Withdrawal requests are processed within 1-2 business days. You must re-enter your password to confirm every withdrawal request.</div>
+        <div class="form-grid">
+          <div class="field"><label>Amount (UGX)</label><input type="number" id="wdAmount" placeholder="e.g. 1000000" inputmode="numeric"></div>
+          <div class="field"><label>Destination</label>
+            <select id="wdMethod">
+              <option value="mtn_momo">MTN Mobile Money</option>
+              <option value="airtel">Airtel Money</option>
+              <option value="bank">Bank Transfer</option>
+            </select>
+          </div>
+          <div class="field"><label>Account Number / Phone</label><input type="text" id="wdAccount" placeholder="Phone or bank account"></div>
+          <div class="field"><label>Account Holder Name</label><input type="text" id="wdName" placeholder="Name on account"></div>
+        </div>
+        <div class="field"><label>Confirm Your Password</label><input type="password" id="wdPassword" placeholder="Your manager password"></div>
+        <div class="err" id="wdErr"></div>
+        <button class="btn-primary" onclick="requestWithdrawal()">Submit Withdrawal Request</button>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head"><div class="table-title">Withdrawal History</div></div>
+        <table>
+          <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Account</th><th>Status</th><th>Requested By</th></tr></thead>
+          <tbody id="wd-body"><tr class="loading-row"><td colspan="6">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════════ FUEL PRICES ════════════ -->
+    <div class="panel" id="panel-prices">
+      <div class="form-panel" style="max-width:520px;">
+        <h3>⛽ Update Live Fuel Prices</h3>
+        <div class="info-box">These prices update instantly on the NERO website and are used by the attendant app to calculate litre-based deductions.</div>
+        <div style="display:flex;gap:2rem;margin-bottom:1.5rem;background:var(--dark2);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:1.25rem;">
+          <div><div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem;">Current Petrol</div><div style="font-family:var(--font-h);font-size:1.5rem;font-weight:900;color:var(--red);" id="livePetrol">—</div></div>
+          <div><div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem;">Current Diesel</div><div style="font-family:var(--font-h);font-size:1.5rem;font-weight:900;color:var(--red);" id="liveDiesel">—</div></div>
+          <div><div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem;">Last Updated</div><div style="font-size:.82rem;color:rgba(255,255,255,.5);margin-top:.25rem;" id="priceUpdatedAt">—</div></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>New Petrol Price (UGX/litre)</label><input type="number" id="newPetrol" placeholder="e.g. 5400" inputmode="numeric"></div>
+          <div class="field"><label>New Diesel Price (UGX/litre)</label><input type="number" id="newDiesel" placeholder="e.g. 4900" inputmode="numeric"></div>
+        </div>
+        <div class="err" id="priceErr"></div>
+        <button class="btn-primary" onclick="updatePrices()">Update Live Prices</button>
+      </div>
+    </div>
+
+    <!-- ════════════ AUDIT LOG ════════════ -->
+    <div class="panel" id="panel-audit">
+      <div class="info-box">Every action in the system is logged here permanently. Nothing can be deleted from the audit log.</div>
+      <div class="filter-row">
+        <select class="filter-select" id="auditType" onchange="loadAudit()">
+          <option value="">All Actions</option>
+          <option value="topup">Top-Ups</option>
+          <option value="deduct">Deductions</option>
+          <option value="refund">Refunds</option>
+          <option value="withdraw">Withdrawals</option>
+          <option value="suspend">Account Changes</option>
+          <option value="login">Logins</option>
+        </select>
+        <input class="filter-input" type="date" id="auditDate" onchange="loadAudit()">
+      </div>
+      <div class="table-wrap">
+        <div class="table-head"><div class="table-title">Audit Log</div></div>
+        <table>
+          <thead><tr><th>Time</th><th>Action</th><th>By</th><th>Target</th><th>Amount</th><th>Details</th><th>IP</th></tr></thead>
+          <tbody id="audit-body"><tr class="loading-row"><td colspan="7">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════════ SETTINGS ════════════ -->
+    <div class="panel" id="panel-settings">
+      <div class="form-panel" style="max-width:520px;">
+        <h3>⚙️ System Settings</h3>
+        <div class="field"><label>Low Balance Alert Threshold (UGX)</label><input type="number" id="lowBalThreshold" placeholder="e.g. 10000" inputmode="numeric"></div>
+        <div class="field"><label>Max Single Deduction (UGX)</label><input type="number" id="maxDeduction" placeholder="e.g. 2000000" inputmode="numeric"></div>
+        <div class="field"><label>Min Top-Up Amount (UGX)</label><input type="number" id="minTopup" placeholder="e.g. 5000" inputmode="numeric"></div>
+        <div class="err" id="settingsErr"></div>
+        <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+      <div class="form-panel" style="max-width:520px;margin-top:1rem;">
+        <h3>🔑 Change Password</h3>
+        <div class="field"><label>Current Password</label><input type="password" id="oldPassword" placeholder="••••••••"></div>
+        <div class="field"><label>New Password</label><input type="password" id="newPassword" placeholder="••••••••"></div>
+        <div class="field"><label>Confirm New Password</label><input type="password" id="confirmPassword" placeholder="••••••••"></div>
+        <div class="err" id="passwordErr"></div>
+        <button class="btn-primary" onclick="changePassword()">Update Password</button>
+      </div>
+    </div>
+
+  <!-- ════════════ DEBUG ════════════ -->
+    <div class="panel" id="panel-debug">
+      <div class="info-box" style="margin-bottom:1rem;">
+        This panel shows exactly what data exists in your Firebase database.
+        Use it to diagnose why panels might be empty.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;" id="debugStats">
+        <div class="stat-card"><div class="stat-label">customers</div><div class="stat-value" id="dbg-customers">—</div></div>
+        <div class="stat-card"><div class="stat-label">attendants</div><div class="stat-value" id="dbg-attendants">—</div></div>
+        <div class="stat-card"><div class="stat-label">transactions</div><div class="stat-value" id="dbg-transactions">—</div></div>
+        <div class="stat-card"><div class="stat-label">topups</div><div class="stat-value" id="dbg-topups">—</div></div>
+        <div class="stat-card"><div class="stat-label">withdrawals</div><div class="stat-value" id="dbg-withdrawals">—</div></div>
+        <div class="stat-card"><div class="stat-label">audit_log</div><div class="stat-value" id="dbg-audit">—</div></div>
+      </div>
+      <div class="form-panel">
+        <h3>🔧 Raw Collection Viewer</h3>
+        <div class="filter-row">
+          <select class="filter-select" id="dbgCollection">
+            <option value="customers">customers</option>
+            <option value="attendants">attendants</option>
+            <option value="transactions">transactions</option>
+            <option value="topups">topups</option>
+            <option value="managers">managers</option>
+            <option value="audit_log">audit_log</option>
+            <option value="withdrawals">withdrawals</option>
+            <option value="fuel_prices">fuel_prices</option>
+          </select>
+          <button class="btn-primary" onclick="loadDebugCollection()">Load Data</button>
+        </div>
+        <div id="dbgOutput" style="background:var(--dark2);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:1rem;font-family:monospace;font-size:.78rem;color:rgba(255,255,255,.6);max-height:400px;overflow-y:auto;margin-top:.75rem;white-space:pre-wrap;word-break:break-all;">
+          Click "Load Data" to view collection contents.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+</div><!-- /dashboard-wrap -->
+
+<!-- ══ RECEIPT MODAL ══ -->
+<div class="modal-bg" id="receiptModal">
+  <div class="modal" style="max-width:380px;">
+    <button class="modal-close" onclick="closeModal('receiptModal')">✕</button>
+    <div class="modal-title">Transaction Receipt</div>
+    <div id="receiptContent"></div>
+    <div style="display:flex;gap:.75rem;margin-top:1.25rem;">
+      <button class="btn-primary" onclick="window.print()">🖨️ Print</button>
+      <button class="tbl-btn" style="flex:1;" onclick="closeModal('receiptModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ QUICK TOPUP MODAL ══ -->
+<div class="modal-bg" id="quickTopupModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('quickTopupModal')">✕</button>
+    <div class="modal-title">Add Funds to Wallet</div>
+    <div class="field"><label>Amount (UGX)</label><input type="number" id="qtAmount" placeholder="e.g. 50000" inputmode="numeric"></div>
+    <div class="field"><label>Note</label><input type="text" id="qtNote" placeholder="e.g. Cash payment at counter"></div>
+    <div class="err" id="qtErr"></div>
+    <button class="btn-green" onclick="confirmQuickTopup()">✓ Add Funds</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ════════════════════════════════════
+     FIREBASE + ALL LOGIC
+════════════════════════════════════ -->
+<script>
+/* ── UI DISPATCHER ──
+   onclick attributes fire immediately from HTML.
+   The Firebase module loads asynchronously.
+   This script creates stub functions that queue any early calls
+   and replay them once the module has registered the real functions.
+*/
+(function(){
+  const _queue = {};
+  const _fns   = {};
+
+  /* Functions that HTML onclick attributes call */
+  const EXPOSED = [
+    'showPanel','refreshCurrentPanel','mgrLogin','mgrLogout',
+    'loadChart','loadTransactions','loadCustomers','loadAttendants',
+    'loadTopups','loadRefunds','loadAudit','loadDebugCollection',
+    'issueRefund','cashTopup','requestWithdrawal','updatePrices',
+    'saveSettings','changePassword','downloadReport',
+    'addAttendant','toggleAttendant','loadAttendantActivity',
+    'openCustomerDetail','viewCustomerTx','toggleSuspend',
+    'toggleSuspendById','openQuickTopup','quickTopupCustomer',
+    'confirmQuickTopup','showReceipt','prefillRefund','copyId'
+  ];
+
+  EXPOSED.forEach(name => {
+    _queue[name] = [];
+    window[name] = function(...args) {
+      if (_fns[name]) {
+        return _fns[name](...args);
+      } else {
+        _queue[name].push(args);
+      }
+    };
+  });
+
+  /* Called by the module once it's ready to register real functions */
+  window._registerFn = function(name, fn) {
+    _fns[name] = fn;
+    if (_queue[name] && _queue[name].length > 0) {
+      _queue[name].forEach(args => fn(...args));
+      _queue[name] = [];
+    }
+  };
+})();
+</script>
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+         reauthenticateWithCredential, EmailAuthProvider, updatePassword as fbUpdatePassword,
+         setPersistence, browserSessionPersistence }
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, getDocs, addDoc, updateDoc,
+         collection, query, orderBy, limit, where, onSnapshot,
+         serverTimestamp, increment, runTransaction, Timestamp }
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+const app  = initializeApp({
+  apiKey:"AIzaSyB-Q-MFZDCgHnaVgMRrgxEL9YPrIqZwUrU",
+  authDomain:"redfuel-a2152.firebaseapp.com",
+  projectId:"redfuel-a2152",
+  storageBucket:"redfuel-a2152.firebasestorage.app",
+  messagingSenderId:"782154176195",
+  appId:"1:782154176195:web:46af20e4252e415ba77476"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let _manager       = null;
+let _currentPanel  = "overview";
+let _selectedCust  = null; // for customer detail view
+let _revenueChart  = null;
+let _stationChart  = null;
+let _fuelChart     = null;
+let _methodChart   = null;
+
+/* ══════════════════════════════════
+   AUTH
+══════════════════════════════════ */
+onAuthStateChanged(auth, async user => {
+  const overlay = document.getElementById("authOverlay");
+  const wrap    = document.getElementById("dashboard-wrap");
+
+  if (user) {
+    try {
+      /* Check managers collection */
+      const snap = await getDoc(doc(db,"managers",user.uid));
+      if (snap.exists()) {
+        _manager = { uid:user.uid, ...snap.data() };
+        document.getElementById("mgrName").textContent = _manager.name || user.email;
+        overlay.style.display = "none";
+        wrap.style.display    = "flex";
+        initDashboard();
+        return;
+      }
+      /* Deny — not a manager */
+      await signOut(auth);
+      overlay.style.display = "flex";
+      wrap.style.display    = "none";
+      showAuthErr("Access denied. This portal is for managers only.");
+    } catch(e) {
+      /* Network error — still allow if cached */
+      overlay.style.display = "none";
+      wrap.style.display    = "flex";
+      _manager = { uid:user.uid, name:user.email };
+      document.getElementById("mgrName").textContent = user.email;
+      initDashboard();
+    }
+  } else {
+    overlay.style.display = "flex";
+    wrap.style.display    = "none";
+  }
+});
+
+window.mgrLogin = async () => {
+  const email = document.getElementById("mgrEmail").value.trim();
+  const pass  = document.getElementById("mgrPass").value;
+  const btn   = document.getElementById("mgrLoginBtn");
+  document.getElementById("mgrAuthErr").style.display="none";
+  if(!email||!pass){showAuthErr("Please enter your email and password.");return;}
+  btn.disabled=true;btn.textContent="Signing in…";
+  try {
+    await setPersistence(auth, browserSessionPersistence);
+    await signInWithEmailAndPassword(auth,email,pass);
+    await logAudit("login",`Manager logged in`,null,null);
+  } catch(e) {
+    showAuthErr("Incorrect email or password. Please try again.");
+  } finally {btn.disabled=false;btn.textContent="Sign In";}
+};
+
+window.mgrLogout = async () => {
+  if(!confirm("Sign out of the manager dashboard?"))return;
+  await logAudit("login","Manager signed out",null,null);
+  await signOut(auth);
+  document.getElementById("dashboard-wrap").style.display="none";
+  document.getElementById("authOverlay").style.display="flex";
+  document.getElementById("mgrEmail").value="";
+  document.getElementById("mgrPass").value="";
+};
+
+function showAuthErr(msg){const el=document.getElementById("mgrAuthErr");el.textContent=msg;el.style.display="block";}
+
+/* ══════════════════════════════════
+   INIT
+══════════════════════════════════ */
+function initDashboard(){
+  loadOverview();
+  loadPrices();
+  updateRefreshTime();
+}
+
+/* ══════════════════════════════════
+   PANEL NAVIGATION
+══════════════════════════════════ */
+const PANEL_TITLES = {
+  overview:"Overview",transactions:"All Transactions",reports:"Reports & Charts",
+  topups:"Top-Ups",refunds:"Refunds",customers:"Customers",
+  attendants:"Attendants",withdraw:"Withdraw Funds",prices:"Fuel Prices",
+  audit:"Audit Log",settings:"Settings"
+};
+const PANEL_LOADERS = {
+  transactions:loadTransactions,customers:loadCustomers,
+  attendants:loadAttendants,topups:loadTopups,
+  refunds:loadRefunds,withdraw:loadWithdrawals,
+  audit:loadAudit,reports:()=>{loadCharts("7d");},debug:loadDebugPanel
+};
+
+window.showPanel = (name) => {
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById(`panel-${name}`).classList.add("active");
+  /* Highlight correct nav item */
+  document.querySelectorAll(".nav-item").forEach(n=>{
+    if(n.getAttribute("onclick")?.includes(`'${name}'`)) n.classList.add("active");
+  });
+  document.getElementById("pageTitle").textContent = PANEL_TITLES[name]||name;
+  _currentPanel = name;
+  updateRefreshTime();
+  if(PANEL_LOADERS[name]) PANEL_LOADERS[name]();
+};
+
+window.refreshCurrentPanel = () => {
+  updateRefreshTime();
+  if(_currentPanel==="overview") loadOverview();
+  else if(PANEL_LOADERS[_currentPanel]) PANEL_LOADERS[_currentPanel]();
+};
+
+function updateRefreshTime(){
+  document.getElementById("lastRefresh").textContent =
+    "Updated "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+}
+
+/* ══════════════════════════════════
+   OVERVIEW
+══════════════════════════════════ */
+async function loadOverview(){
+  try{
+    let custSnap;
+    try{custSnap=await getDocs(query(collection(db,"customers"),limit(500)));}
+    catch(e2){custSnap=await getDocs(collection(db,"customers"));}
+    let totalBal=0,custCount=0,lowCount=0;
+    custSnap.forEach(d=>{
+      const c=d.data();
+      if(c.status==="active"){totalBal+=c.balance||0;custCount++;}
+      if((c.balance||0)<10000&&c.status==="active")lowCount++;
+    });
+    setText("ov-total-bal",`UGX ${fmt(totalBal)}`);
+    setText("ov-customers",custCount);
+    setText("ov-low-balance",`${lowCount} low balance alert${lowCount!==1?"s":""}`);
+
+    const today=new Date();today.setHours(0,0,0,0);
+    let txSnap;
+    try{txSnap=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(200)));}
+    catch(e2){txSnap=await getDocs(collection(db,"transactions"));}
+    let topupT=0,topupC=0,salesT=0,salesC=0;
+    const stationSales={kiwoko:{t:0,c:0},nakaseke:{t:0,c:0},butalangu:{t:0,c:0}};
+    const recentRows=[];
+
+    txSnap.forEach(d=>{
+      const tx=d.data();
+      const ts=tx.timestamp?.toDate?.();
+      if(ts&&ts>=today){
+        if(tx.type==="topup"||tx.type==="cash_topup"){topupT+=tx.amount||0;topupC++;}
+        if(tx.type==="deduct"){
+          salesT+=tx.amount||0;salesC++;
+          const sid=(tx.stationId||"").toLowerCase();
+          if(stationSales[sid]){stationSales[sid].t+=tx.amount||0;stationSales[sid].c++;}
+        }
+      }
+      if(recentRows.length<10) recentRows.push({id:d.id,...tx});
+    });
+
+    setText("ov-topups-today",`UGX ${fmt(topupT)}`);
+    setText("ov-topup-count",`${topupC} transaction${topupC!==1?"s":""}`);
+    setText("ov-sales-today",`UGX ${fmt(salesT)}`);
+    setText("ov-sales-count",`${salesC} deduction${salesC!==1?"s":""}`);
+
+    Object.entries(stationSales).forEach(([sid,v])=>{
+      setText(`st-${sid}-sales`,`UGX ${fmt(v.t)}`);
+      setText(`st-${sid}-count`,`${v.c} transaction${v.c!==1?"s":""}`);
+    });
+
+    /* Recent tx table */
+    const tbody=document.getElementById("ov-tx-body");
+    tbody.innerHTML="";
+    recentRows.forEach(tx=>{
+      const time=tx.timestamp?.toDate?.()?.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})||"—";
+      tbody.innerHTML+=`<tr>
+        <td>${time}</td><td>${tx.accountNumber||"—"}</td>
+        <td><span class="badge ${tx.type||""}">${tx.type||"—"}</span></td>
+        <td class="amount-cell ${tx.type==="deduct"?"neg":"pos"}">${tx.type==="deduct"?"-":"+"} UGX ${fmt(tx.amount||0)}</td>
+        <td>${tx.stationName||"—"}</td><td>${tx.attendantName||"—"}</td>
+        <td><span class="badge success">${tx.status||"success"}</span></td>
+      </tr>`;
+    });
+
+    /* Low balance alerts */
+    const lbTbody=document.getElementById("low-balance-body");
+    lbTbody.innerHTML="";
+    let lbCount=0;
+    custSnap.forEach(d=>{
+      const c=d.data();
+      if((c.balance||0)<10000&&c.status==="active"&&lbCount<10){
+        lbCount++;
+        lbTbody.innerHTML+=`<tr>
+          <td style="font-family:var(--font-h);letter-spacing:.08em;">${c.accountNumber||"—"}</td>
+          <td>${c.name||"—"}</td><td>${c.phone||"—"}</td>
+          <td class="amount-cell" style="color:var(--amber);">UGX ${fmt(c.balance||0)}</td>
+          <td><button class="tbl-btn green" onclick="openQuickTopup('${d.id}','${(c.name||"").replace(/'/g,"\\'")}')">+ Top Up</button></td>
+        </tr>`;
+      }
+    });
+    if(lbCount===0) lbTbody.innerHTML=`<tr class="loading-row"><td colspan="5">✓ No customers with low balance</td></tr>`;
+
+  }catch(e){console.error("Overview:",e);setText("ov-total-bal","Error: "+e.message);}
+}
+
+/* ══════════════════════════════════
+   CHARTS
+══════════════════════════════════ */
+async function loadCharts(period){
+  let txSnap;
+  try{txSnap=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(500)));}
+  catch(e2){txSnap=await getDocs(collection(db,"transactions"));}
+  const days = period==="7d"?7:period==="30d"?30:90;
+  const now  = new Date();
+  const labels=[], salesData=[], topupData=[];
+  const stationData={kiwoko:0,nakaseke:0,butalangu:0};
+  const fuelData={petrol:0,diesel:0};
+  const methodData={mtn:0,airtel:0,card:0,paypal:0,cash:0};
+
+  for(let i=days-1;i>=0;i--){
+    const d=new Date(now);d.setDate(d.getDate()-i);
+    labels.push(d.toLocaleDateString("en-GB",{day:"numeric",month:"short"}));
+    salesData.push(0);topupData.push(0);
+  }
+
+  txSnap.forEach(d=>{
+    const tx=d.data();
+    const ts=tx.timestamp?.toDate?.();
+    if(!ts)return;
+    const daysAgo=Math.floor((now-ts)/(1000*60*60*24));
+    if(daysAgo<days){
+      const idx=days-1-daysAgo;
+      if(tx.type==="deduct"){salesData[idx]+=tx.amount||0;}
+      if(tx.type==="topup"||tx.type==="cash_topup"){topupData[idx]+=tx.amount||0;}
+    }
+    if(tx.type==="deduct"){
+      const sid=(tx.stationId||"").toLowerCase();
+      if(stationData[sid]!==undefined) stationData[sid]+=tx.amount||0;
+      if(tx.fuelType==="petrol") fuelData.petrol+=tx.amount||0;
+      if(tx.fuelType==="diesel") fuelData.diesel+=tx.amount||0;
+    }
+    if(tx.type==="topup"||tx.type==="cash_topup"){
+      const m=(tx.method||"").toLowerCase();
+      if(m.includes("mtn"))    methodData.mtn+=tx.amount||0;
+      else if(m.includes("airtel")) methodData.airtel+=tx.amount||0;
+      else if(m.includes("card"))   methodData.card+=tx.amount||0;
+      else if(m.includes("paypal")) methodData.paypal+=tx.amount||0;
+      else methodData.cash+=tx.amount||0;
+    }
+  });
+
+  const cOpts={responsive:true,plugins:{legend:{labels:{color:"rgba(255,255,255,.55)",font:{family:"Barlow Condensed",size:11}}}},scales:{x:{ticks:{color:"rgba(255,255,255,.4)",font:{size:10}},grid:{color:"rgba(255,255,255,.04)"}},y:{ticks:{color:"rgba(255,255,255,.4)",font:{size:10},callback:v=>`${(v/1000).toFixed(0)}K`},grid:{color:"rgba(255,255,255,.06)"}}}};
+
+  if(_revenueChart) _revenueChart.destroy();
+  _revenueChart=new Chart(document.getElementById("revenueChart"),{
+    type:"bar",
+    data:{labels,datasets:[
+      {label:"Fuel Sales",data:salesData,backgroundColor:"rgba(232,0,13,.7)",borderRadius:3},
+      {label:"Top-Ups",data:topupData,backgroundColor:"rgba(34,197,94,.5)",borderRadius:3}
+    ]},options:cOpts
+  });
+
+  const pieOpts={responsive:true,plugins:{legend:{position:"right",labels:{color:"rgba(255,255,255,.55)",font:{family:"Barlow Condensed",size:11},padding:12}}}};
+
+  if(_stationChart) _stationChart.destroy();
+  _stationChart=new Chart(document.getElementById("stationChart"),{
+    type:"doughnut",
+    data:{labels:["Kiwoko","Nakaseke","Butalangu"],
+      datasets:[{data:[stationData.kiwoko,stationData.nakaseke,stationData.butalangu],
+        backgroundColor:["rgba(245,158,11,.8)","rgba(59,130,246,.8)","rgba(34,197,94,.8)"],
+        borderWidth:0}]},options:pieOpts
+  });
+
+  if(_fuelChart) _fuelChart.destroy();
+  _fuelChart=new Chart(document.getElementById("fuelChart"),{
+    type:"pie",
+    data:{labels:["Petrol","Diesel"],datasets:[{data:[fuelData.petrol,fuelData.diesel],backgroundColor:["rgba(232,0,13,.8)","rgba(59,130,246,.8)"],borderWidth:0}]},options:pieOpts
+  });
+
+  if(_methodChart) _methodChart.destroy();
+  _methodChart=new Chart(document.getElementById("methodChart"),{
+    type:"pie",
+    data:{labels:["MTN MoMo","Airtel","Card","PayPal","Cash"],
+      datasets:[{data:[methodData.mtn,methodData.airtel,methodData.card,methodData.paypal,methodData.cash],
+        backgroundColor:["rgba(255,193,7,.8)","rgba(255,68,68,.8)","rgba(139,92,246,.8)","rgba(0,112,186,.8)","rgba(34,197,94,.8)"],
+        borderWidth:0}]},options:pieOpts
+  });
+}
+
+window.loadChart = (period,btn) => {
+  document.querySelectorAll(".period-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  loadCharts(period);
+};
+
+/* ══════════════════════════════════
+   TRANSACTIONS
+══════════════════════════════════ */
+window.loadTransactions = async () => {
+  const tbody=document.getElementById("tx-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="11">Loading…</td></tr>`;
+  try{
+    const type    =document.getElementById("txType")?.value;
+    const station =document.getElementById("txStation")?.value;
+    const dateVal =document.getElementById("txDate")?.value;
+    const search  =document.getElementById("txSearch")?.value.trim().toUpperCase();
+
+    /* Simple query — no composite index needed. Filter client-side. */
+    const snap=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(300)));
+    tbody.innerHTML="";
+    let count=0;
+
+    snap.docs.forEach(d=>{
+      const tx=d.data();
+      if(type&&tx.type!==type)return;
+      if(station&&(tx.stationId||"").toLowerCase()!==station)return;
+      if(dateVal){const txDate=tx.timestamp?.toDate?.()?.toISOString().slice(0,10);if(txDate!==dateVal)return;}
+      if(search&&!(tx.accountNumber||"").toUpperCase().includes(search))return;
+      count++;
+      const time=tx.timestamp?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})||"—";
+      tbody.innerHTML+=`<tr>
+        <td style="font-family:var(--font-h);font-size:.72rem;color:var(--muted);">${(tx.reference||d.id).slice(0,10)}</td>
+        <td>${time}</td><td>${tx.accountNumber||"—"}</td>
+        <td><span class="badge ${tx.type}">${tx.type}</span></td>
+        <td>${tx.fuelType||"—"}</td>
+        <td>${tx.litres?tx.litres.toFixed(2)+"L":"—"}</td>
+        <td class="amount-cell ${tx.type==="deduct"?"neg":"pos"}">${tx.type==="deduct"?"-":"+"} UGX ${fmt(tx.amount||0)}</td>
+        <td>UGX ${fmt(tx.balanceAfter||0)}</td>
+        <td>${tx.attendantName||"—"}</td>
+        <td>${tx.stationName||"—"}</td>
+        <td style="white-space:nowrap;">
+          <button class="tbl-btn blue" onclick="showReceipt('${d.id}')">🖨️</button>
+          ${tx.type==="deduct"&&tx.status!=="refunded"?`<button class="tbl-btn red" onclick="prefillRefund('${d.id}','${tx.accountNumber||""}','${tx.amount||0}')">↩️</button>`:""}
+        </td>
+      </tr>`;
+    });
+    setText("tx-count",`${count} transaction${count!==1?"s":""}`);
+    if(count===0) tbody.innerHTML=`<tr class="loading-row"><td colspan="11">No transactions found.</td></tr>`;
+  }catch(e){tbody.innerHTML=`<tr class="loading-row"><td colspan="11" style="color:#ef4444;">Error: ${e.message} — Check Firestore indexes</td></tr>`;console.error(e);}
+};
+
+/* ══════════════════════════════════
+   RECEIPT
+══════════════════════════════════ */
+window.showReceipt = async (txId) => {
+  try{
+    const snap=await getDoc(doc(db,"transactions",txId));
+    if(!snap.exists()){_showToast("Transaction not found","error");return;}
+    const tx=snap.data();
+    const time=tx.timestamp?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})||"—";
+    document.getElementById("receiptContent").innerHTML=`
+      <div class="receipt">
+        <div class="receipt-logo">⛽ NERO</div>
+        <div class="receipt-title">NERO PETRO STATION<br>Official Receipt</div>
+        <hr class="receipt-divider">
+        <div class="receipt-row"><span>Date:</span><span>${time}</span></div>
+        <div class="receipt-row"><span>Ref:</span><span>${tx.reference||txId.slice(0,10)}</span></div>
+        <div class="receipt-row"><span>Customer:</span><span>${tx.accountNumber||"—"}</span></div>
+        <div class="receipt-row"><span>Station:</span><span>${tx.stationName||"—"}</span></div>
+        <div class="receipt-row"><span>Attendant:</span><span>${tx.attendantName||"—"}</span></div>
+        <hr class="receipt-divider">
+        <div class="receipt-row"><span>Type:</span><span>${tx.type?.toUpperCase()||"—"}</span></div>
+        ${tx.fuelType?`<div class="receipt-row"><span>Fuel:</span><span>${tx.fuelType?.toUpperCase()}</span></div>`:""}
+        ${tx.litres?`<div class="receipt-row"><span>Litres:</span><span>${tx.litres.toFixed(2)}L</span></div>`:""}
+        <hr class="receipt-divider">
+        <div class="receipt-row receipt-total"><span>AMOUNT:</span><span>UGX ${fmt(tx.amount||0)}</span></div>
+        <div class="receipt-row"><span>Balance After:</span><span>UGX ${fmt(tx.balanceAfter||0)}</span></div>
+        <hr class="receipt-divider">
+        <div style="text-align:center;font-size:.72rem;color:#888;margin-top:.5rem;">
+          Thank you for choosing NERO!<br>Drive Further. Pay Less.<br>
+          📞 +256 708 870667
+        </div>
+      </div>`;
+    openModal("receiptModal");
+  }catch(e){_showToast("Could not load receipt","error");}
+};
+
+window.prefillRefund = (txId,accNum,amount) => {
+  showPanel("refunds");
+  document.getElementById("refundTxRef").value=txId;
+  document.getElementById("refundAccNum").value=accNum;
+  document.getElementById("refundAmount").value=amount;
+};
+
+/* ══════════════════════════════════
+   REFUNDS
+══════════════════════════════════ */
+window.issueRefund = async () => {
+  const txRef   =document.getElementById("refundTxRef").value.trim();
+  const accNum  =document.getElementById("refundAccNum").value.trim().toUpperCase();
+  const amount  =parseFloat(document.getElementById("refundAmount").value);
+  const reason  =document.getElementById("refundReason").value;
+  const notes   =document.getElementById("refundNotes").value.trim();
+  const errEl   =document.getElementById("refundErr");
+  errEl.style.display="none";
+
+  if(!accNum||!amount||amount<=0){showErr(errEl,"Please fill in account number and amount.");return;}
+
+  try{
+    const custSnap=await getDocs(query(collection(db,"customers"),where("accountNumber","==",accNum)));
+    if(custSnap.empty){showErr(errEl,"Customer account not found.");return;}
+    const custDoc=custSnap.docs[0];
+    const current=custDoc.data().balance||0;
+
+    await runTransaction(db,async tx=>{
+      const custRef=doc(db,"customers",custDoc.id);
+      const snap=await tx.get(custRef);
+      tx.update(custRef,{balance:(snap.data().balance||0)+amount,lastActivity:serverTimestamp()});
+      tx.set(doc(collection(db,"transactions")),{
+        customerId:custDoc.id,accountNumber:accNum,
+        type:"refund",amount,
+        balanceBefore:current,balanceAfter:current+amount,
+        reason,notes,
+        originalTxRef:txRef||null,
+        refundedBy:_manager?.uid,
+        refundedByName:_manager?.name||"Manager",
+        status:"success",timestamp:serverTimestamp()
+      });
+    });
+
+    await logAudit("refund",`Refund issued to ${accNum}`,accNum,amount);
+    _showToast(`Refund of UGX ${fmt(amount)} issued to ${accNum} ✓`);
+    document.getElementById("refundTxRef").value="";
+    document.getElementById("refundAccNum").value="";
+    document.getElementById("refundAmount").value="";
+    document.getElementById("refundNotes").value="";
+    loadRefunds();
+  }catch(e){showErr(errEl,"Error: "+e.message);}
+};
+
+async function loadRefunds(){
+  const tbody=document.getElementById("refund-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="6">Loading…</td></tr>`;
+  try{
+    /* Get all transactions, filter refunds client-side — avoids needing Firestore index */
+    const allSnap=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(500)));
+    const snap={docs:allSnap.docs.filter(d=>d.data().type==="refund")};
+    tbody.innerHTML="";
+    if(snap.empty){tbody.innerHTML=`<tr class="loading-row"><td colspan="6">No refunds yet.</td></tr>`;return;}
+    snap.forEach(d=>{
+      const r=d.data();
+      const date=r.timestamp?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})||"—";
+      const reasonLabels={wrong_deduction:"Wrong deduction",pump_fault:"Pump fault",customer_request:"Customer request",duplicate:"Duplicate",other:"Other"};
+      tbody.innerHTML+=`<tr>
+        <td>${date}</td><td>${r.accountNumber||"—"}</td>
+        <td class="amount-cell pos">+ UGX ${fmt(r.amount||0)}</td>
+        <td>${reasonLabels[r.reason]||r.reason||"—"}</td>
+        <td>${r.refundedByName||"—"}</td>
+        <td style="font-size:.75rem;color:var(--muted);">${r.originalTxRef?.slice(0,12)||"—"}</td>
+      </tr>`;
+    });
+  }catch(e){tbody.innerHTML=`<tr class="loading-row"><td colspan="6" style="color:#ef4444;">Error: ${e.message}</td></tr>`;console.error(e);}
+}
+
+/* ══════════════════════════════════
+   CUSTOMERS
+══════════════════════════════════ */
+window.loadCustomers = async () => {
+  const tbody=document.getElementById("cust-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="7">Loading…</td></tr>`;
+  try{
+    const search=document.getElementById("custSearch")?.value.trim().toLowerCase();
+    const status=document.getElementById("custStatus")?.value;
+    /* Simple fetch — filter client-side to avoid needing Firestore indexes */
+    let snap;
+    try {
+      snap=await getDocs(query(collection(db,"customers"),orderBy("createdAt","desc"),limit(200)));
+    } catch(e2) {
+      /* If createdAt index missing, fall back to unordered fetch */
+      snap=await getDocs(collection(db,"customers"));
+    }
+    tbody.innerHTML="";
+    let count=0;
+    snap.forEach(d=>{
+      const c=d.data();
+      if(status&&c.status!==status)return;
+      if(search&&!((c.name||"").toLowerCase().includes(search)||(c.phone||"").includes(search)||(c.accountNumber||"").toLowerCase().includes(search)))return;
+      count++;
+      const date=c.createdAt?.toDate?.()?.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})||"—";
+      const isLow=(c.balance||0)<10000;
+      tbody.innerHTML+=`<tr onclick="openCustomerDetail('${d.id}')" style="cursor:pointer;">
+        <td style="font-family:var(--font-h);letter-spacing:.08em;">${c.accountNumber||"—"}</td>
+        <td>${c.name||"—"}</td><td>${c.phone||"—"}</td>
+        <td class="amount-cell" style="color:${isLow?"var(--amber)":"var(--white)"};">UGX ${fmt(c.balance||0)}${isLow?" ⚠️":""}</td>
+        <td><span class="badge ${c.status==="active"?"active":"suspended"}">${c.status||"active"}</span></td>
+        <td>${date}</td>
+        <td onclick="event.stopPropagation();" style="white-space:nowrap;">
+          <button class="tbl-btn green" onclick="openQuickTopup('${d.id}','${(c.name||"").replace(/'/g,"\\'")}')">+ Funds</button>
+          <button class="tbl-btn ${c.status==="active"?"red":"green"}" onclick="toggleSuspendById('${d.id}','${c.status}','${(c.name||"").replace(/'/g,"\\'")}')">
+            ${c.status==="active"?"Suspend":"Reinstate"}
+          </button>
+        </td>
+      </tr>`;
+    });
+    setText("cust-count",`${count} customer${count!==1?"s":""}`);
+    if(count===0) tbody.innerHTML=`<tr class="loading-row"><td colspan="7">No customers found.</td></tr>`;
+  }catch(e){tbody.innerHTML=`<tr class="loading-row"><td colspan="7" style="color:#ef4444;">Error: ${e.message}</td></tr>`;console.error(e);}
+};
+
+window.openCustomerDetail = async (uid) => {
+  try{
+    const snap=await getDoc(doc(db,"customers",uid));
+    if(!snap.exists())return;
+    const c=snap.data();
+    _selectedCust={uid,...c};
+    const initials=c.name?.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2)||"?";
+    document.getElementById("cdAvatar").textContent=initials;
+    document.getElementById("cdName").textContent=c.name||"—";
+    document.getElementById("cdMeta").textContent=c.phone||"—";
+    document.getElementById("cdAccNum").textContent=c.accountNumber||"—";
+    document.getElementById("cdBalance").textContent=`UGX ${fmt(c.balance||0)}`;
+    document.getElementById("cdStatus").innerHTML=`<span class="badge ${c.status==="active"?"active":"suspended"}">${c.status||"active"}</span>`;
+    document.getElementById("cdJoined").textContent=c.createdAt?.toDate?.()?.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})||"—";
+    document.getElementById("cdLastActivity").textContent=c.lastActivity?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})||"—";
+    document.getElementById("cdSuspendBtn").textContent=c.status==="active"?"Suspend Account":"Reinstate Account";
+    document.getElementById("cdSuspendBtn").className=`tbl-btn ${c.status==="active"?"red":"green"}`;
+    document.getElementById("cdTxWrap").style.display="none";
+    document.getElementById("custDetailWrap").style.display="block";
+    document.getElementById("custDetailWrap").scrollIntoView({behavior:"smooth"});
+  }catch(e){_showToast("Could not load customer","error");}
+};
+
+window.viewCustomerTx = async () => {
+  if(!_selectedCust)return;
+  const wrap=document.getElementById("cdTxWrap");
+  const tbody=document.getElementById("cd-tx-body");
+  wrap.style.display="block";
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="5">Loading…</td></tr>`;
+  try{
+    /* Get all tx and filter client-side — avoids composite index requirement */
+    const allTxSnap=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(500)));
+    const snap={docs:allTxSnap.docs.filter(d=>d.data().customerId===_selectedCust.uid).slice(0,30)};
+    tbody.innerHTML="";
+    if(snap.empty){tbody.innerHTML=`<tr class="loading-row"><td colspan="5">No transactions yet.</td></tr>`;return;}
+    snap.forEach(d=>{
+      const tx=d.data();
+      const time=tx.timestamp?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})||"—";
+      tbody.innerHTML+=`<tr>
+        <td>${time}</td>
+        <td><span class="badge ${tx.type}">${tx.type}</span></td>
+        <td class="amount-cell ${tx.type==="deduct"?"neg":"pos"}">${tx.type==="deduct"?"-":"+"} UGX ${fmt(tx.amount||0)}</td>
+        <td>UGX ${fmt(tx.balanceAfter||0)}</td>
+        <td>${tx.stationName||"—"}</td>
+      </tr>`;
+    });
+  }catch(e){tbody.innerHTML=`<tr class="loading-row"><td colspan="5">Error loading.</td></tr>`;}
+};
+
+window.toggleSuspend = async () => {
+  if(!_selectedCust)return;
+  await toggleSuspendById(_selectedCust.uid,_selectedCust.status,_selectedCust.name);
+  await openCustomerDetail(_selectedCust.uid);
+};
+window.toggleSuspendById = async (uid,currentStatus,name) => {
+  const newStatus=currentStatus==="active"?"suspended":"active";
+  if(!confirm(`${newStatus==="suspended"?"Suspend":"Reinstate"} ${name}?`))return;
+  try{
+    await updateDoc(doc(db,"customers",uid),{status:newStatus,lastModified:serverTimestamp()});
+    await logAudit("suspend",`Customer ${newStatus}: ${name}`,uid,null);
+    _showToast(`${name} ${newStatus} ✓`);
+    loadCustomers();
+  }catch(e){_showToast("Error: "+e.message,"error");}
+};
+
+/* Quick top-up from overview/customer list */
+let _quickTopupUid=null;
+window.openQuickTopup = (uid,name) => {
+  _quickTopupUid=uid;
+  document.querySelector("#quickTopupModal .modal-title").textContent=`Add Funds — ${name}`;
+  document.getElementById("qtAmount").value="";
+  document.getElementById("qtNote").value="";
+  document.getElementById("qtErr").style.display="none";
+  openModal("quickTopupModal");
+};
+window.quickTopupCustomer = () => {
+  if(_selectedCust) openQuickTopup(_selectedCust.uid,_selectedCust.name);
+};
+window.confirmQuickTopup = async () => {
+  const amount=parseFloat(document.getElementById("qtAmount").value);
+  const note  =document.getElementById("qtNote").value.trim();
+  const errEl =document.getElementById("qtErr");
+  errEl.style.display="none";
+  if(!amount||amount<1000){showErr(errEl,"Minimum amount is UGX 1,000.");return;}
+  try{
+    const custSnap=await getDoc(doc(db,"customers",_quickTopupUid));
+    if(!custSnap.exists()){showErr(errEl,"Customer not found.");return;}
+    const current=custSnap.data().balance||0;
+    await updateDoc(doc(db,"customers",_quickTopupUid),{balance:increment(amount),lastActivity:serverTimestamp()});
+    await addDoc(collection(db,"transactions"),{
+      customerId:_quickTopupUid,accountNumber:custSnap.data().accountNumber,
+      type:"cash_topup",method:"cash",amount,
+      balanceBefore:current,balanceAfter:current+amount,
+      note:note||null,addedBy:_manager?.uid,addedByName:_manager?.name,
+      status:"success",timestamp:serverTimestamp()
+    });
+    await logAudit("topup",`Cash top-up UGX ${fmt(amount)}`,custSnap.data().accountNumber,amount);
+    closeModal("quickTopupModal");
+    _showToast(`UGX ${fmt(amount)} added successfully ✓`);
+    loadCustomers();
+    if(_selectedCust&&_selectedCust.uid===_quickTopupUid) openCustomerDetail(_quickTopupUid);
+  }catch(e){showErr(errEl,"Error: "+e.message);}
+};
+
+/* ══════════════════════════════════
+   ATTENDANTS
+══════════════════════════════════ */
+window.loadAttendants = async () => {
+  const tbody=document.getElementById("att-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="6">Loading…</td></tr>`;
+  try{
+    const snap=await getDocs(collection(db,"attendants"));
+    tbody.innerHTML="";
+    if(snap.empty){tbody.innerHTML=`<tr class="loading-row"><td colspan="6">No attendants yet. Add one above.</td></tr>`;return;}
+
+    /* Count today's tx per attendant — simple query, filter client-side */
+    const today=new Date();today.setHours(0,0,0,0);
+    const attTx={};
+    try{
+      const txSnap=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(200)));
+      txSnap.forEach(d=>{
+        const tx=d.data();
+        if(tx.type==="deduct"&&tx.timestamp?.toDate?.()>=today){
+          attTx[tx.attendantId]=(attTx[tx.attendantId]||0)+1;
+        }
+      });
+    }catch(e2){console.warn("Could not count tx:",e2);}
+
+    const typeFilter=document.getElementById("auditType")?.value;
+    const dateFilter=document.getElementById("auditDate")?.value;
+    let filtered=snap.docs;
+    if(typeFilter) filtered=filtered.filter(d=>d.data().action===typeFilter);
+    if(dateFilter) filtered=filtered.filter(d=>{const ts=d.data().timestamp?.toDate?.();return ts&&ts.toISOString().slice(0,10)===dateFilter;});
+    filtered.forEach(d=>{
+      const a=d.data();
+      tbody.innerHTML+=`<tr>
+        <td style="font-family:var(--font-h);letter-spacing:.1em;color:var(--red);">${a.attendantId||"—"}</td>
+        <td>${a.name||"—"}</td><td>${a.phone||"—"}</td>
+        <td>${a.stationName||a.stationId||"—"}</td>
+        <td><span class="badge ${a.status==="active"?"active":"failed"}">${a.status||"active"}</span></td>
+        <td>${attTx[d.id]||0}</td>
+        <td style="white-space:nowrap;">
+          <button class="tbl-btn blue" onclick="copyId('${a.attendantId||""}')">📋 Copy ID</button>
+          <button class="tbl-btn ${a.status==="active"?"red":"green"}" onclick="toggleAttendant('${d.id}','${a.status}','${(a.name||"").replace(/'/g,"\\'")}')">
+            ${a.status==="active"?"Deactivate":"Reactivate"}
+          </button>
+        </td>
+      </tr>`;
+    });
+  }catch(e){tbody.innerHTML=`<tr class="loading-row"><td colspan="6" style="color:#ef4444;">Error: ${e.message}</td></tr>`;console.error(e);}
+};
+
+window.loadAttendantActivity = () => loadAttendants();
+
+/* Generate unique 8-digit attendant ID */
+function genAttendantId(){
+  return "AT" + Math.floor(10000000 + Math.random()*90000000).toString();
+}
+
+/* Standardise phone to email — same function used in both manager and attendant app */
+function phoneToAttEmail(phone){
+  return `att_${phone.replace(/[\s+\-()]/g,"")}@nero-wallet.app`;
+}
+
+window.copyId = (id) => {
+  navigator.clipboard?.writeText(id).then(()=>_showToast(`ID ${id} copied ✓`)).catch(()=>_showToast(`ID: ${id}`,"amber"));
+};
+
+window.addAttendant = async () => {
+  const name   =document.getElementById("attName").value.trim();
+  const phone  =document.getElementById("attPhone").value.trim();
+  const station=document.getElementById("attStation").value;
+  const pin    =document.getElementById("attPin").value;
+  const errEl  =document.getElementById("attErr");
+  errEl.style.display="none";
+  if(!name||!phone||!pin){showErr(errEl,"Please fill in all fields.");return;}
+  if(!/^\d{4}$/.test(pin)){showErr(errEl,"PIN must be exactly 4 digits.");return;}
+  if(!phone.match(/^(\+256|0|256)[37]\d{8}$/)){showErr(errEl,"Please enter a valid Ugandan phone number.");return;}
+
+  const btn=document.getElementById("attErr").closest(".form-panel").querySelector(".btn-primary");
+  if(btn){btn.disabled=true;btn.textContent="Creating…";}
+
+  try{
+    /* Use a SECONDARY Firebase app so creating attendant doesn't log out the manager */
+    const {initializeApp:initApp2,getApps:getApps2}=await import("https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js");
+    const {getAuth:getAuth2,createUserWithEmailAndPassword:createUser2}=await import("https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js");
+
+    const secondaryApp = getApps2().find(a=>a.name==="secondary") ||
+      initApp2({
+        apiKey:"AIzaSyB-Q-MFZDCgHnaVgMRrgxEL9YPrIqZwUrU",
+        authDomain:"redfuel-a2152.firebaseapp.com",
+        projectId:"redfuel-a2152",
+        storageBucket:"redfuel-a2152.firebasestorage.app",
+        messagingSenderId:"782154176195",
+        appId:"1:782154176195:web:46af20e4252e415ba77476"
+      },"secondary");
+
+    const auth2 = getAuth2(secondaryApp);
+    const email = phoneToAttEmail(phone);
+    const attendantId = genAttendantId();
+
+    const cred=await createUser2(auth2,email,pin+"_att");
+
+    await setDoc(doc(db,"attendants",cred.user.uid),{
+      attendantId,
+      name,phone,email,
+      stationId:station,
+      stationName:station.charAt(0).toUpperCase()+station.slice(1),
+      status:"active",
+      createdAt:serverTimestamp(),
+      createdBy:_manager?.uid
+    });
+
+    await logAudit("suspend",`Added attendant: ${name} (${attendantId}) at ${station}`,cred.user.uid,null);
+
+    /* Sign out of secondary app — doesn't affect manager session */
+    await auth2.signOut();
+
+    _showToast(`${name} added — ID: ${attendantId} ✓`);
+    document.getElementById("attName").value="";
+    document.getElementById("attPhone").value="";
+    document.getElementById("attPin").value="";
+
+    /* Show the new attendant's credentials clearly */
+    const infoHtml=`
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:1.25rem;margin-bottom:1rem;">
+        <div style="font-family:var(--font-h);font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;color:var(--green);margin-bottom:.75rem;">✓ Attendant Created Successfully</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.88rem;">
+          <div><div style="color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem;">Attendant ID</div><div style="font-family:var(--font-h);font-size:1.1rem;font-weight:700;color:var(--white);">${attendantId}</div></div>
+          <div><div style="color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem;">PIN</div><div style="font-family:var(--font-h);font-size:1.1rem;font-weight:700;color:var(--white);">${pin}</div></div>
+          <div><div style="color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem;">Phone (login)</div><div style="font-size:.9rem;color:rgba(255,255,255,.7);">${phone}</div></div>
+          <div><div style="color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem;">Station</div><div style="font-size:.9rem;color:rgba(255,255,255,.7);">${station.charAt(0).toUpperCase()+station.slice(1)}</div></div>
+        </div>
+        <div style="margin-top:.85rem;font-size:.78rem;color:var(--muted);">⚠️ Write down or share these credentials with the attendant now — the PIN cannot be retrieved later.</div>
+      </div>`;
+    document.getElementById("attErr").insertAdjacentHTML("beforebegin",infoHtml);
+
+    loadAttendants();
+  }catch(e){
+    const msgs={"auth/email-already-in-use":"This phone number is already registered as an attendant."};
+    showErr(errEl,msgs[e.code]||"Error: "+e.message);
+  } finally {
+    if(btn){btn.disabled=false;btn.textContent="Create Attendant Account";}
+  }
+};
+
+window.toggleAttendant = async (uid,status,name) => {
+  const newStatus=status==="active"?"removed":"active";
+  if(!confirm(`${newStatus==="removed"?"Deactivate":"Reactivate"} ${name}?`))return;
+  try{
+    await updateDoc(doc(db,"attendants",uid),{status:newStatus});
+    _showToast(`${name} ${newStatus==="removed"?"deactivated":"reactivated"} ✓`);
+    loadAttendants();
+  }catch(e){_showToast("Error: "+e.message,"error");}
+};
+
+/* ══════════════════════════════════
+   TOP-UPS
+══════════════════════════════════ */
+async function loadTopups(){
+  const tbody=document.getElementById("topup-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="7">Loading…</td></tr>`;
+  try{
+    /* Try topups collection first, fall back to transactions */
+    let snap;
+    try {
+      snap=await getDocs(query(collection(db,"topups"),orderBy("timestamp","desc"),limit(100)));
+    } catch(e2) { snap={empty:true,docs:[]}; }
+    /* Also get cash top-ups from transactions if topups collection is empty */
+    if(snap.empty||snap.docs.length===0){
+      const txSnap2=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(300)));
+      snap={docs:txSnap2.docs.filter(d=>d.data().type==="topup"||d.data().type==="cash_topup")};
+    }
+    tbody.innerHTML="";
+    if(!snap.docs||snap.docs.length===0){tbody.innerHTML=`<tr class="loading-row"><td colspan="7">No top-ups yet. Top-ups will appear here once customers add funds.</td></tr>`;return;}
+    snap.forEach(d=>{
+      const t=d.data();
+      const time=t.timestamp?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})||"—";
+      tbody.innerHTML+=`<tr>
+        <td style="font-family:var(--font-h);font-size:.72rem;color:var(--muted);">${(t.reference||d.id).slice(0,12)}</td>
+        <td>${time}</td><td>${t.accountNumber||"—"}</td>
+        <td>${t.method||"—"}</td>
+        <td class="amount-cell pos">+ UGX ${fmt(t.amount||0)}</td>
+        <td><span class="badge ${t.status==="success"?"success":t.status==="pending"?"pending":"failed"}">${t.status||"—"}</span></td>
+        <td style="font-size:.78rem;color:var(--muted);">${t.note||"—"}</td>
+      </tr>`;
+    });
+  }catch(e){tbody.innerHTML=`<tr class="loading-row"><td colspan="7" style="color:#ef4444;">Error: ${e.message}</td></tr>`;console.error(e);}
+}
+
+window.cashTopup = async () => {
+  const accNum=document.getElementById("cashAccNum").value.trim().toUpperCase();
+  const amount=parseFloat(document.getElementById("cashAmount").value);
+  const note  =document.getElementById("cashNote").value.trim();
+  const errEl =document.getElementById("cashErr");
+  errEl.style.display="none";
+  if(!accNum||!amount||amount<1000){showErr(errEl,"Enter valid account number and amount (min UGX 1,000).");return;}
+  try{
+    const custSnap=await getDocs(query(collection(db,"customers"),where("accountNumber","==",accNum)));
+    if(custSnap.empty){showErr(errEl,"Account not found. Check the account number.");return;}
+    const custDoc=custSnap.docs[0];
+    const current=custDoc.data().balance||0;
+    await updateDoc(doc(db,"customers",custDoc.id),{balance:increment(amount),lastActivity:serverTimestamp()});
+    await addDoc(collection(db,"transactions"),{
+      customerId:custDoc.id,accountNumber:accNum,type:"cash_topup",
+      method:"cash",amount,balanceBefore:current,balanceAfter:current+amount,
+      note:note||null,addedBy:_manager?.uid,addedByName:_manager?.name,
+      status:"success",timestamp:serverTimestamp()
+    });
+    await addDoc(collection(db,"topups"),{
+      customerId:custDoc.id,accountNumber:accNum,amount,method:"cash",
+      status:"success",note:note||null,reference:"CASH_"+Date.now(),timestamp:serverTimestamp()
+    });
+    await logAudit("topup",`Cash top-up UGX ${fmt(amount)} to ${accNum}`,accNum,amount);
+    _showToast(`UGX ${fmt(amount)} added to ${accNum} ✓`);
+    document.getElementById("cashAccNum").value="";
+    document.getElementById("cashAmount").value="";
+    document.getElementById("cashNote").value="";
+    loadTopups();
+  }catch(e){showErr(errEl,"Error: "+e.message);}
+};
+
+/* ══════════════════════════════════
+   WITHDRAWALS
+══════════════════════════════════ */
+async function loadWithdrawals(){
+  try{
+    let allTx;
+    try{allTx=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(1000)));}
+    catch(e2){allTx=await getDocs(collection(db,"transactions"));}
+    let balance=0;
+    allTx.forEach(d=>{
+      const t=d.data();
+      if(t.type==="topup"||t.type==="cash_topup") balance+=t.amount||0;
+      else if(t.type==="deduct") balance-=t.amount||0;
+      else if(t.type==="refund") balance-=t.amount||0;
+    });
+    setText("companyBalance",`UGX ${fmt(Math.max(0,balance))}`);
+
+    const snap=await getDocs(collection(db,"withdrawals"));
+    const tbody=document.getElementById("wd-body");
+    tbody.innerHTML="";
+    if(snap.empty){tbody.innerHTML=`<tr class="loading-row"><td colspan="6">No withdrawals yet.</td></tr>`;return;}
+    snap.forEach(d=>{
+      const w=d.data();
+      const date=w.timestamp?.toDate?.()?.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})||"—";
+      tbody.innerHTML+=`<tr>
+        <td>${date}</td>
+        <td class="amount-cell neg">UGX ${fmt(w.amount||0)}</td>
+        <td>${w.method||"—"}</td><td>${w.accountNumber||"—"}</td>
+        <td><span class="badge ${w.status==="approved"?"success":w.status==="pending"?"pending":"failed"}">${w.status||"pending"}</span></td>
+        <td>${w.requestedByName||"—"}</td>
+      </tr>`;
+    });
+  }catch(e){console.error("Withdraw:",e);setText("companyBalance","Error: "+e.message);}
+}
+
+window.requestWithdrawal = async () => {
+  const amount  =parseFloat(document.getElementById("wdAmount").value);
+  const method  =document.getElementById("wdMethod").value;
+  const account =document.getElementById("wdAccount").value.trim();
+  const name    =document.getElementById("wdName").value.trim();
+  const password=document.getElementById("wdPassword").value;
+  const errEl   =document.getElementById("wdErr");
+  errEl.style.display="none";
+  if(!amount||amount<10000){showErr(errEl,"Minimum withdrawal is UGX 10,000.");return;}
+  if(!account||!name||!password){showErr(errEl,"Please fill in all fields.");return;}
+  try{
+    const cred=EmailAuthProvider.credential(auth.currentUser.email,password);
+    await reauthenticateWithCredential(auth.currentUser,cred);
+    await addDoc(collection(db,"withdrawals"),{
+      amount,method,accountNumber:account,accountName:name,
+      requestedBy:_manager?.uid,requestedByName:_manager?.name,
+      status:"pending",timestamp:serverTimestamp()
+    });
+    await logAudit("withdraw",`Withdrawal request UGX ${fmt(amount)}`,null,amount);
+    _showToast("Withdrawal request submitted ✓");
+    ["wdAmount","wdAccount","wdName","wdPassword"].forEach(id=>{document.getElementById(id).value="";});
+    loadWithdrawals();
+  }catch(e){
+    showErr(errEl,e.code==="auth/wrong-password"?"Incorrect password.":"Error: "+e.message);
+  }
+};
+
+/* ══════════════════════════════════
+   FUEL PRICES
+══════════════════════════════════ */
+window.loadPrices = async () => {
+  try{
+    const snap=await getDoc(doc(db,"fuel_prices","current"));
+    if(!snap.exists())return;
+    const {petrol,diesel,updatedAt}=snap.data();
+    setText("livePetrol",`UGX ${fmt(petrol||0)}`);
+    setText("liveDiesel",`UGX ${fmt(diesel||0)}`);
+    setText("priceUpdatedAt",updatedAt?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})||"—");
+  }catch(e){}
+};
+
+window.updatePrices = async () => {
+  const petrol=parseFloat(document.getElementById("newPetrol").value);
+  const diesel=parseFloat(document.getElementById("newDiesel").value);
+  const errEl=document.getElementById("priceErr");
+  errEl.style.display="none";
+  if(!petrol||!diesel||petrol<100||diesel<100){showErr(errEl,"Please enter valid prices (min UGX 100).");return;}
+  try{
+    await setDoc(doc(db,"fuel_prices","current"),{petrol,diesel,updatedAt:serverTimestamp(),updatedBy:_manager?.uid},{merge:true});
+    await logAudit("deduct",`Fuel prices updated: Petrol ${fmt(petrol)}, Diesel ${fmt(diesel)}`,null,null);
+    _showToast(`Prices updated — Petrol UGX ${fmt(petrol)} / Diesel UGX ${fmt(diesel)} ✓`);
+    document.getElementById("newPetrol").value="";
+    document.getElementById("newDiesel").value="";
+    loadPrices();
+  }catch(e){showErr(errEl,"Error: "+e.message);}
+};
+
+/* ══════════════════════════════════
+   AUDIT LOG
+══════════════════════════════════ */
+async function loadAudit(){
+  const tbody=document.getElementById("audit-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="7">Loading…</td></tr>`;
+  try{
+    const type=document.getElementById("auditType")?.value;
+    /* Simple fetch + client-side filter — no composite index needed */
+    const snap=await getDocs(query(collection(db,"audit_log"),orderBy("timestamp","desc"),limit(200)));
+    tbody.innerHTML="";
+    if(snap.empty){tbody.innerHTML=`<tr class="loading-row"><td colspan="7">No audit entries yet.</td></tr>`;return;}
+    const typeFilter=document.getElementById("auditType")?.value;
+    const dateFilter=document.getElementById("auditDate")?.value;
+    let filtered=snap.docs;
+    if(typeFilter) filtered=filtered.filter(d=>d.data().action===typeFilter);
+    if(dateFilter) filtered=filtered.filter(d=>{const ts=d.data().timestamp?.toDate?.();return ts&&ts.toISOString().slice(0,10)===dateFilter;});
+    filtered.forEach(d=>{
+      const a=d.data();
+      const time=a.timestamp?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"})||"—";
+      tbody.innerHTML+=`<tr>
+        <td style="font-size:.78rem;">${time}</td>
+        <td><span class="audit-action ${a.action}">${a.action}</span></td>
+        <td>${a.byName||a.by||"—"}</td>
+        <td style="font-family:var(--font-h);font-size:.8rem;">${a.target||"—"}</td>
+        <td class="amount-cell">${a.amount?`UGX ${fmt(a.amount)}`:"—"}</td>
+        <td style="font-size:.78rem;color:var(--muted);">${a.details||"—"}</td>
+        <td style="font-size:.72rem;color:rgba(255,255,255,.2);">${a.ip||"—"}</td>
+      </tr>`;
+    });
+  }catch(e){tbody.innerHTML=`<tr class="loading-row"><td colspan="7" style="color:#ef4444;">Error: ${e.message}</td></tr>`;console.error(e);}
+}
+
+async function logAudit(action,details,target,amount){
+  try{
+    await addDoc(collection(db,"audit_log"),{
+      action,details,target:target||null,
+      amount:amount||null,
+      by:_manager?.uid||"system",
+      byName:_manager?.name||"System",
+      timestamp:serverTimestamp()
+    });
+  }catch(e){console.warn("Audit log failed:",e);}
+}
+
+/* ══════════════════════════════════
+   SETTINGS
+══════════════════════════════════ */
+window.saveSettings = async () => {
+  const threshold=parseFloat(document.getElementById("lowBalThreshold").value)||10000;
+  const maxDed   =parseFloat(document.getElementById("maxDeduction").value)||2000000;
+  const minTop   =parseFloat(document.getElementById("minTopup").value)||5000;
+  const errEl    =document.getElementById("settingsErr");
+  errEl.style.display="none";
+  try{
+    await setDoc(doc(db,"settings","wallet"),{
+      lowBalanceThreshold:threshold,
+      maxSingleDeduction:maxDed,
+      minTopupAmount:minTop,
+      updatedBy:_manager?.uid,
+      updatedAt:serverTimestamp()
+    },{merge:true});
+    _showToast("Settings saved ✓");
+  }catch(e){showErr(errEl,"Error: "+e.message);}
+};
+
+window.changePassword = async () => {
+  const oldPass =document.getElementById("oldPassword").value;
+  const newPass =document.getElementById("newPassword").value;
+  const confPass=document.getElementById("confirmPassword").value;
+  const errEl   =document.getElementById("passwordErr");
+  errEl.style.display="none";
+  if(!oldPass||!newPass||!confPass){showErr(errEl,"Please fill in all fields.");return;}
+  if(newPass!==confPass){showErr(errEl,"New passwords do not match.");return;}
+  if(newPass.length<8){showErr(errEl,"New password must be at least 8 characters.");return;}
+  try{
+    const cred=EmailAuthProvider.credential(auth.currentUser.email,oldPass);
+    await reauthenticateWithCredential(auth.currentUser,cred);
+    await fbUpdatePassword(auth.currentUser,newPass);
+    _showToast("Password updated successfully ✓");
+    ["oldPassword","newPassword","confirmPassword"].forEach(id=>document.getElementById(id).value="");
+  }catch(e){
+    showErr(errEl,e.code==="auth/wrong-password"?"Current password is incorrect.":"Error: "+e.message);
+  }
+};
+
+/* ══════════════════════════════════
+   CSV DOWNLOAD
+══════════════════════════════════ */
+window.downloadReport = async () => {
+  const type =document.getElementById("reportType")?.value||"transactions";
+  const range=document.getElementById("reportRange")?.value||"all";
+  try{
+    let snap,headers,rows=[];
+    const now=new Date();
+    const rangeStart={today:new Date(now.setHours(0,0,0,0)),week:new Date(now-7*864e5),month:new Date(now-30*864e5),all:new Date(0)};
+    const from=rangeStart[range]||new Date(0);
+
+    if(type==="customers"){
+      snap=await getDocs(query(collection(db,"customers"),orderBy("createdAt","desc")));
+      headers=["Account","Name","Phone","Balance","Status","Joined"];
+      snap.forEach(d=>{const c=d.data();rows.push([c.accountNumber,c.name,c.phone,c.balance||0,c.status,c.createdAt?.toDate?.()?.toLocaleDateString("en-GB")||""]);});
+    } else {
+      let col="transactions",filters=[],typeMap={topups:"topup",deductions:"deduct"};
+      try{snap=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(1000)));}
+      catch(e3){snap=await getDocs(collection(db,"transactions"));}
+      headers=["Reference","Date","Account","Type","Fuel","Litres","Amount","Balance After","Attendant","Station","Status"];
+      snap.forEach(d=>{
+        const t=d.data();
+        const ts=t.timestamp?.toDate?.();
+        if(ts&&ts<from)return;
+        if(type==="topups"&&t.type!=="topup"&&t.type!=="cash_topup")return;
+        if(type==="deductions"&&t.type!=="deduct")return;
+        rows.push([t.reference||d.id,ts?.toLocaleString("en-GB")||"",t.accountNumber||"",t.type||"",t.fuelType||"",t.litres||"",t.amount||0,t.balanceAfter||0,t.attendantName||"",t.stationName||"",t.status||""]);
+      });
+    }
+
+    const csv=[headers,...rows].map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
+    const a=document.createElement("a");
+    a.download=`NERO-${type}-${new Date().toISOString().slice(0,10)}.csv`;
+    a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+    a.click();
+    _showToast(`${rows.length} records exported ✓`);
+  }catch(e){_showToast("Export failed: "+e.message,"error");}
+};
+
+/* ══════════════════════════════════
+   HELPERS
+══════════════════════════════════ */
+const fmt = n => (n||0).toLocaleString("en-UG");
+const setText = (id,val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+const showErr = (el,msg) => { el.textContent=msg; el.style.display="block"; };
+window.openModal  = id => document.getElementById(id).classList.add("open");
+window.closeModal = id => document.getElementById(id).classList.remove("open");
+/* ══════════════════════════════════
+   DEBUG
+══════════════════════════════════ */
+async function loadDebugPanel(){
+  const cols=["customers","attendants","transactions","topups","withdrawals","audit_log"];
+  for(const col of cols){
+    try{
+      const snap=await getDocs(collection(db,col));
+      const el=document.getElementById(`dbg-${col==="audit_log"?"audit":col}`);
+      if(el) el.textContent=snap.size;
+    }catch(e){
+      const el=document.getElementById(`dbg-${col==="audit_log"?"audit":col}`);
+      if(el) el.textContent="Error";
+    }
+  }
+}
+
+window.loadDebugCollection = async () => {
+  const col=document.getElementById("dbgCollection").value;
+  const out=document.getElementById("dbgOutput");
+  out.textContent="Loading "+col+"…";
+  try{
+    const snap=await getDocs(collection(db,col));
+    if(snap.empty){out.textContent="Collection '"+col+"' is empty or does not exist.\n\nThis is why your panels show nothing — the data hasn't been created yet.\n\nFor customers: have someone sign up via the customer app.\nFor attendants: use the Attendants panel to add one.\nFor transactions: complete a fuel deduction via the attendant app.";return;}
+    let output=`Collection: ${col} (${snap.size} documents)\n${"─".repeat(50)}\n\n`;
+    snap.docs.slice(0,10).forEach((d,i)=>{
+      output+=`[${i+1}] ID: ${d.id}\n`;
+      const data=d.data();
+      Object.entries(data).forEach(([k,v])=>{
+        const val=v?.toDate?v.toDate().toLocaleString("en-GB"):JSON.stringify(v);
+        output+=`  ${k}: ${val}\n`;
+      });
+      output+="\n";
+    });
+    if(snap.size>10) output+=`... and ${snap.size-10} more documents.`;
+    out.textContent=output;
+  }catch(e){
+    out.textContent="Error loading "+col+":\n"+e.message+"\n\nThis usually means:\n- The collection doesn't exist yet\n- Your Firestore rules are blocking access\n- A required index is missing\n\nCheck the browser console (F12) for more details.";
+    console.error(col,e);
+  }
+};
+
+window._showToast = (msg,type="success") => {
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.className=type;
+  t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3500);
+};
+
+/* Register all functions with the dispatcher */
+if(window.showPanel) window._registerFn("showPanel", window.showPanel);
+if(window.refreshCurrentPanel) window._registerFn("refreshCurrentPanel", window.refreshCurrentPanel);
+if(window.mgrLogin) window._registerFn("mgrLogin", window.mgrLogin);
+if(window.mgrLogout) window._registerFn("mgrLogout", window.mgrLogout);
+if(window.loadChart) window._registerFn("loadChart", window.loadChart);
+if(window.loadTransactions) window._registerFn("loadTransactions", window.loadTransactions);
+if(window.loadCustomers) window._registerFn("loadCustomers", window.loadCustomers);
+if(window.loadAttendants) window._registerFn("loadAttendants", window.loadAttendants);
+if(window.loadTopups) window._registerFn("loadTopups", window.loadTopups);
+if(window.loadRefunds) window._registerFn("loadRefunds", window.loadRefunds);
+if(window.loadAudit) window._registerFn("loadAudit", window.loadAudit);
+if(window.loadDebugCollection) window._registerFn("loadDebugCollection", window.loadDebugCollection);
+if(window.issueRefund) window._registerFn("issueRefund", window.issueRefund);
+if(window.cashTopup) window._registerFn("cashTopup", window.cashTopup);
+if(window.requestWithdrawal) window._registerFn("requestWithdrawal", window.requestWithdrawal);
+if(window.updatePrices) window._registerFn("updatePrices", window.updatePrices);
+if(window.saveSettings) window._registerFn("saveSettings", window.saveSettings);
+if(window.changePassword) window._registerFn("changePassword", window.changePassword);
+if(window.downloadReport) window._registerFn("downloadReport", window.downloadReport);
+if(window.addAttendant) window._registerFn("addAttendant", window.addAttendant);
+if(window.toggleAttendant) window._registerFn("toggleAttendant", window.toggleAttendant);
+if(window.loadAttendantActivity) window._registerFn("loadAttendantActivity", window.loadAttendantActivity);
+if(window.openCustomerDetail) window._registerFn("openCustomerDetail", window.openCustomerDetail);
+if(window.viewCustomerTx) window._registerFn("viewCustomerTx", window.viewCustomerTx);
+if(window.toggleSuspend) window._registerFn("toggleSuspend", window.toggleSuspend);
+if(window.toggleSuspendById) window._registerFn("toggleSuspendById", window.toggleSuspendById);
+if(window.openQuickTopup) window._registerFn("openQuickTopup", window.openQuickTopup);
+if(window.quickTopupCustomer) window._registerFn("quickTopupCustomer", window.quickTopupCustomer);
+if(window.confirmQuickTopup) window._registerFn("confirmQuickTopup", window.confirmQuickTopup);
+if(window.showReceipt) window._registerFn("showReceipt", window.showReceipt);
+if(window.prefillRefund) window._registerFn("prefillRefund", window.prefillRefund);
+if(window.copyId) window._registerFn("copyId", window.copyId);
+</script>
+</body>
+</html>
