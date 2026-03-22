@@ -6,6 +6,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NERO Wallet">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#e8000d">
 <title>NERO Fuel Wallet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -346,6 +349,42 @@ button { cursor:pointer; font-family:var(--font-b); }
 </style>
 </head>
 <body>
+
+
+<!-- ══ PWA INSTALL BANNER ══ -->
+<div id="installBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9000;
+  background:var(--dark);border-top:1px solid rgba(232,0,13,.3);padding:1rem 1.5rem;
+  display:none;align-items:center;justify-content:space-between;gap:1rem;box-shadow:0 -4px 20px rgba(0,0,0,.4);">
+  <div>
+    <div style="font-family:var(--font-h);font-size:.9rem;font-weight:700;color:var(--white);">Install NERO Wallet</div>
+    <div style="font-size:.78rem;color:var(--muted);">Add to home screen for quick access</div>
+  </div>
+  <div style="display:flex;gap:.65rem;flex-shrink:0;">
+    <button id="installBtn" style="background:var(--red);color:#fff;border:none;border-radius:6px;
+      padding:.6rem 1.25rem;font-family:var(--font-h);font-size:.82rem;font-weight:700;
+      letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Install</button>
+    <button id="installDismiss" style="background:transparent;border:1px solid rgba(255,255,255,.15);
+      color:var(--muted);border-radius:6px;padding:.6rem .9rem;font-size:.8rem;cursor:pointer;">Not now</button>
+  </div>
+</div>
+
+<!-- iPhone instructions banner (shows only on Safari iOS) -->
+<div id="iosBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9000;
+  background:var(--dark);border-top:1px solid rgba(232,0,13,.3);padding:1.25rem 1.5rem;
+  box-shadow:0 -4px 20px rgba(0,0,0,.4);">
+  <div style="display:flex;align-items:flex-start;gap:1rem;">
+    <div style="font-size:1.8rem;flex-shrink:0;">📲</div>
+    <div>
+      <div style="font-family:var(--font-h);font-size:.9rem;font-weight:700;color:var(--white);margin-bottom:.3rem;">Install on iPhone</div>
+      <div style="font-size:.82rem;color:var(--muted);line-height:1.6;">
+        Tap the <strong style="color:var(--white);">Share button</strong> (□↑) at the bottom of Safari,
+        then tap <strong style="color:var(--white);">"Add to Home Screen"</strong>
+      </div>
+    </div>
+    <button onclick="document.getElementById('iosBanner').style.display='none'"
+      style="background:transparent;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;flex-shrink:0;">✕</button>
+  </div>
+</div>
 
 <!-- ══ SPLASH ══ -->
 <div class="screen active" id="splash">
@@ -1056,6 +1095,52 @@ window._showToast = (msg, type="success") => {
   t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 3500);
 };
+
+
+/* ── Service Worker & PWA Install ── */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
+
+/* Android/Desktop install prompt */
+let _installPrompt = null;
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  _installPrompt = e;
+  if (!localStorage.getItem("installDismissed")) {
+    document.getElementById("installBanner").style.display = "flex";
+  }
+});
+
+document.getElementById("installBtn")?.addEventListener("click", async () => {
+  if (!_installPrompt) return;
+  _installPrompt.prompt();
+  const { outcome } = await _installPrompt.userChoice;
+  _installPrompt = null;
+  document.getElementById("installBanner").style.display = "none";
+  if (outcome === "accepted") _showToast("App installed ✓");
+});
+
+document.getElementById("installDismiss")?.addEventListener("click", () => {
+  document.getElementById("installBanner").style.display = "none";
+  localStorage.setItem("installDismissed", "1");
+});
+
+/* iPhone Safari — show manual instructions */
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandalone = window.matchMedia("(display-mode: standalone)").matches;
+if (isIOS && !isInStandalone && !localStorage.getItem("iosDismissed")) {
+  setTimeout(() => {
+    document.getElementById("iosBanner").style.display = "block";
+  }, 3000);
+}
+
+window.addEventListener("appinstalled", () => {
+  document.getElementById("installBanner").style.display = "none";
+  _showToast("NERO Wallet installed successfully ✓");
+});
 
 </script>
 </body>
