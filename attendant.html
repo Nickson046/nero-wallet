@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NERO Attendant">
+<meta name="theme-color" content="#e8000d">
+<title>NERO Attendant</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+
+<!-- QR Scanner -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+:root {
+  --red:#e8000d; --red-dark:#b0000a; --black:#0a0a0a; --dark:#111111;
+  --dark2:#1a1a1a; --dark3:#222222; --muted:#888888; --white:#ffffff;
+  --green:#22c55e; --amber:#f59e0b; --font-h:'Barlow Condensed',sans-serif;
+  --font-b:'Barlow',sans-serif; --r:10px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-b);background:var(--black);color:var(--white);min-height:100vh;overflow-x:hidden;}
+button{cursor:pointer;font-family:var(--font-b);}
+
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ── AUTH ── */
+#auth{background:var(--black);align-items:center;justify-content:center;padding:2rem;}
+.auth-box{width:100%;max-width:380px;background:var(--dark);border:1px solid rgba(255,255,255,.07);border-top:3px solid var(--red);border-radius:var(--r);padding:2.5rem 2rem;display:flex;flex-direction:column;gap:1.25rem;}
+.auth-logo{font-family:var(--font-h);font-size:1.8rem;font-weight:900;color:var(--white);text-align:center;}
+.auth-logo span{color:var(--red);}
+.auth-sub{font-family:var(--font-h);font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:center;margin-top:-.5rem;}
+.field{display:flex;flex-direction:column;gap:.4rem;}
+.field label{font-family:var(--font-h);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.field input{background:var(--dark2);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);padding:.85rem 1rem;font-family:var(--font-b);font-size:1rem;width:100%;transition:border-color .25s;}
+.field input:focus{outline:none;border-color:var(--red);}
+.btn-primary{background:var(--red);color:#fff;border:none;border-radius:6px;padding:.9rem;font-family:var(--font-h);font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;transition:background .25s;width:100%;}
+.btn-primary:hover{background:var(--red-dark);}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;}
+.btn-ghost{background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:.75rem;font-family:var(--font-h);font-size:.85rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;width:100%;transition:all .25s;}
+.btn-ghost:hover{border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.7);}
+.err{background:rgba(255,50,50,.08);border:1px solid rgba(255,50,50,.25);border-radius:6px;padding:.65rem 1rem;font-size:.85rem;color:#ff5555;text-align:center;display:none;}
+
+/* ── APP BAR ── */
+.app-bar{background:var(--dark);border-bottom:1px solid rgba(255,255,255,.07);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.app-bar-logo{font-family:var(--font-h);font-size:1.2rem;font-weight:900;color:var(--white);}
+.app-bar-logo span{color:var(--red);}
+.app-bar-right{display:flex;align-items:center;gap:.75rem;}
+.attendant-pill{font-family:var(--font-h);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--dark2);border:1px solid rgba(255,255,255,.08);border-radius:100px;padding:.3rem .85rem;}
+.signout-btn{background:transparent;border:1px solid rgba(232,0,13,.3);color:rgba(232,0,13,.7);padding:.35rem .85rem;font-family:var(--font-h);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;transition:all .25s;}
+.signout-btn:hover{background:rgba(232,0,13,.1);border-color:var(--red);color:var(--red);}
+
+/* ── MAIN CONTENT ── */
+.content{padding:1.5rem;max-width:480px;margin:0 auto;width:100%;}
+
+/* STEP INDICATOR */
+.steps{display:flex;align-items:center;gap:.5rem;margin-bottom:2rem;}
+.step{display:flex;align-items:center;gap:.5rem;font-family:var(--font-h);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--dark2);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;}
+.step.active .step-num{background:var(--red);border-color:var(--red);color:#fff;}
+.step.active{color:var(--white);}
+.step.done .step-num{background:var(--green);border-color:var(--green);color:#fff;}
+.step-line{flex:1;height:1px;background:rgba(255,255,255,.08);}
+
+/* SCAN AREA */
+.scan-box{background:var(--dark);border:1px solid rgba(255,255,255,.08);border-radius:var(--r);overflow:hidden;margin-bottom:1.25rem;}
+.scan-label{font-family:var(--font-h);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.06);}
+#scanner-viewport{width:100%;min-height:240px;background:var(--dark2);}
+.scan-or{text-align:center;font-family:var(--font-h);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin:.75rem 0;}
+.manual-row{display:flex;gap:.65rem;padding:0 1.25rem 1.25rem;}
+.manual-row input{flex:1;background:var(--dark2);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);padding:.75rem 1rem;font-family:var(--font-b);font-size:1rem;}
+.manual-row input:focus{outline:none;border-color:var(--red);}
+.manual-row button{background:var(--red);color:#fff;border:none;border-radius:6px;padding:.75rem 1.25rem;font-family:var(--font-h);font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;}
+
+/* CUSTOMER CARD */
+.customer-card{background:var(--dark);border:1px solid rgba(255,255,255,.08);border-radius:var(--r);padding:1.5rem;margin-bottom:1.25rem;}
+.customer-header{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;}
+.customer-avatar{width:52px;height:52px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:1.4rem;font-weight:900;flex-shrink:0;}
+.customer-name{font-family:var(--font-h);font-size:1.3rem;font-weight:700;color:var(--white);}
+.customer-number{font-size:.78rem;color:var(--muted);margin-top:.15rem;}
+.balance-display{background:linear-gradient(135deg,rgba(232,0,13,.08),rgba(0,0,0,.2));border:1px solid rgba(232,0,13,.2);border-radius:8px;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;}
+.balance-label{font-family:var(--font-h);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.balance-value{font-family:var(--font-h);font-size:1.6rem;font-weight:900;color:var(--white);}
+.balance-value .bal-currency{font-size:.9rem;color:var(--red);}
+
+/* DEDUCT FORM */
+.deduct-form{background:var(--dark);border:1px solid rgba(255,255,255,.08);border-radius:var(--r);padding:1.5rem;margin-bottom:1.25rem;}
+.deduct-form h3{font-family:var(--font-h);font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--white);margin-bottom:1.25rem;}
+.fuel-type-row{display:flex;gap:.65rem;margin-bottom:1rem;}
+.fuel-type-btn{flex:1;background:var(--dark2);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.75rem;font-family:var(--font-h);font-size:.85rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.5);transition:all .25s;}
+.fuel-type-btn:hover,.fuel-type-btn.selected{background:rgba(232,0,13,.1);border-color:var(--red);color:var(--white);}
+.amount-tabs{display:flex;gap:.5rem;margin-bottom:1rem;}
+.amount-tab{padding:.5rem .9rem;background:var(--dark2);border:1px solid rgba(255,255,255,.08);border-radius:6px;font-family:var(--font-h);font-size:.78rem;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;transition:all .2s;}
+.amount-tab.active{background:rgba(232,0,13,.1);border-color:var(--red);color:var(--white);}
+.amount-preview{background:rgba(232,0,13,.06);border:1px solid rgba(232,0,13,.15);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1rem;display:none;}
+.amount-preview-label{font-family:var(--font-h);font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;}
+.amount-preview-value{font-family:var(--font-h);font-size:1.8rem;font-weight:900;color:var(--red);}
+.insufficient{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:.65rem 1rem;font-size:.85rem;color:#ef4444;text-align:center;display:none;margin-bottom:1rem;}
+
+/* CONFIRM STEP */
+.confirm-card{background:var(--dark);border:1px solid rgba(255,255,255,.08);border-radius:var(--r);padding:1.75rem;margin-bottom:1.25rem;}
+.confirm-row{display:flex;justify-content:space-between;align-items:center;padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.confirm-row:last-child{border-bottom:none;}
+.confirm-label{font-size:.85rem;color:var(--muted);}
+.confirm-value{font-family:var(--font-h);font-size:.95rem;font-weight:700;color:var(--white);}
+.confirm-value.red{color:var(--red);}
+.confirm-value.green{color:var(--green);}
+
+/* SUCCESS */
+.success-card{background:var(--dark);border:1px solid rgba(34,197,94,.25);border-radius:var(--r);padding:2.5rem 1.75rem;text-align:center;margin-bottom:1.25rem;}
+.success-icon{font-size:4rem;margin-bottom:1rem;}
+.success-title{font-family:var(--font-h);font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--green);margin-bottom:.5rem;}
+.success-msg{font-size:.9rem;color:var(--muted);line-height:1.6;}
+.receipt-row{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.85rem;}
+.receipt-row:last-child{border-bottom:none;}
+
+/* TOAST */
+#toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(30px);background:var(--dark);border:1px solid rgba(34,197,94,.3);border-left:3px solid var(--green);border-radius:8px;padding:.75rem 1.25rem;font-family:var(--font-h);font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;color:var(--green);white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.error{border-left-color:#ef4444;border-color:rgba(239,68,68,.3);color:#ef4444;}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH ── -->
+<div class="screen active" id="auth">
+  <div class="auth-box">
+    <div class="auth-logo">NE<span>RO</span></div>
+    <div class="auth-sub">Attendant Portal</div>
+    <div class="field">
+      <label>Attendant ID / Phone</label>
+      <input type="text" id="attId" placeholder="Your attendant ID or phone">
+    </div>
+    <div class="field">
+      <label>PIN</label>
+      <input type="password" id="attPin" placeholder="••••" maxlength="4" inputmode="numeric">
+    </div>
+    <div class="err" id="authErr"></div>
+    <button class="btn-primary" id="authBtn" onclick="attLogin()">Sign In</button>
+    <p style="font-size:.75rem;color:rgba(255,255,255,.2);text-align:center;">Contact your station manager if you need access.</p>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div class="screen" id="app">
+
+  <div class="app-bar">
+    <div class="app-bar-logo">NE<span>RO</span> <span style="font-size:.65rem;color:var(--muted);font-weight:400;letter-spacing:.1em;">ATTENDANT</span></div>
+    <div class="app-bar-right">
+      <div class="attendant-pill" id="attNamePill">—</div>
+      <button class="signout-btn" onclick="attSignOut()">⏻ Out</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Step indicator -->
+    <div class="steps" id="stepIndicator">
+      <div class="step active" id="step1"><div class="step-num">1</div>Scan</div>
+      <div class="step-line"></div>
+      <div class="step" id="step2"><div class="step-num">2</div>Amount</div>
+      <div class="step-line"></div>
+      <div class="step" id="step3"><div class="step-num">3</div>Confirm</div>
+    </div>
+
+    <!-- ══ STEP 1: SCAN ══ -->
+    <div id="step1Content">
+      <div class="scan-box">
+        <div class="scan-label">📷 Scan Customer QR Code</div>
+        <div id="scanner-viewport"></div>
+        <div class="scan-or">— or enter account number manually —</div>
+        <div class="manual-row">
+          <input type="text" id="manualAccNum" placeholder="e.g. NRO1234567890" style="text-transform:uppercase;">
+          <button onclick="lookupManual()">Look Up</button>
+        </div>
+      </div>
+      <p style="font-size:.82rem;color:var(--muted);text-align:center;line-height:1.6;">
+        Ask the customer to open their NERO Wallet app and show their QR code, or ask for their account number.
+      </p>
+    </div>
+
+    <!-- ══ STEP 2: AMOUNT ══ -->
+    <div id="step2Content" style="display:none;">
+
+      <div class="customer-card" id="customerCard">
+        <div class="customer-header">
+          <div class="customer-avatar" id="custAvatar">?</div>
+          <div>
+            <div class="customer-name" id="custName">—</div>
+            <div class="customer-number" id="custNumber">—</div>
+          </div>
+        </div>
+        <div class="balance-display">
+          <div>
+            <div class="balance-label">Available Balance</div>
+            <div class="balance-value"><span class="bal-currency">UGX </span><span id="custBalance">0</span></div>
+          </div>
+          <div style="font-size:2rem;">💳</div>
+        </div>
+      </div>
+
+      <div class="deduct-form">
+        <h3>⛽ Enter Fuel Details</h3>
+
+        <div style="font-family:var(--font-h);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;">Fuel Type</div>
+        <div class="fuel-type-row">
+          <button class="fuel-type-btn selected" onclick="selectFuelType('petrol',this)">⛽ Petrol</button>
+          <button class="fuel-type-btn" onclick="selectFuelType('diesel',this)">🛢 Diesel</button>
+        </div>
+
+        <div class="amount-tabs">
+          <div class="amount-tab active" onclick="setInputMode('amount',this)">By Amount (UGX)</div>
+          <div class="amount-tab" onclick="setInputMode('litres',this)">By Litres</div>
+        </div>
+
+        <div class="field" id="amountField">
+          <label>Amount to Deduct (UGX)</label>
+          <input type="number" id="deductAmount" placeholder="e.g. 50000" inputmode="numeric" oninput="updatePreview()">
+        </div>
+
+        <div class="field" id="litresField" style="display:none;">
+          <label>Number of Litres</label>
+          <input type="number" id="deductLitres" placeholder="e.g. 20" inputmode="decimal" step="0.1" oninput="calcFromLitres()">
+          <div style="font-size:.78rem;color:var(--muted);margin-top:.25rem;">Current price: <span id="pricePerLitre">UGX —</span> per litre</div>
+        </div>
+
+        <div class="amount-preview" id="amountPreview">
+          <div class="amount-preview-label">Amount to be deducted</div>
+          <div class="amount-preview-value" id="previewAmount">UGX 0</div>
+        </div>
+
+        <div class="insufficient" id="insufficientMsg">❌ Insufficient balance for this amount.</div>
+
+        <div style="display:flex;gap:.75rem;margin-top:.5rem;">
+          <button class="btn-ghost" onclick="resetToScan()">← Rescan</button>
+          <button class="btn-primary" id="proceedBtn" onclick="proceedToConfirm()" style="flex:2;">Proceed →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STEP 3: CONFIRM ══ -->
+    <div id="step3Content" style="display:none;">
+      <div class="confirm-card">
+        <div style="font-family:var(--font-h);font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;color:var(--red);margin-bottom:1rem;">Confirm Transaction</div>
+        <div class="confirm-row">
+          <span class="confirm-label">Customer</span>
+          <span class="confirm-value" id="conf-name">—</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-label">Account</span>
+          <span class="confirm-value" id="conf-acc">—</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-label">Fuel Type</span>
+          <span class="confirm-value" id="conf-fuel">—</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-label">Litres</span>
+          <span class="confirm-value" id="conf-litres">—</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-label">Amount</span>
+          <span class="confirm-value red" id="conf-amount">UGX 0</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-label">Balance Before</span>
+          <span class="confirm-value" id="conf-before">—</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-label">Balance After</span>
+          <span class="confirm-value green" id="conf-after">—</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-label">Station</span>
+          <span class="confirm-value" id="conf-station">—</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-label">Attendant</span>
+          <span class="confirm-value" id="conf-attendant">—</span>
+        </div>
+      </div>
+
+      <div class="err" id="confirmErr" style="margin-bottom:1rem;"></div>
+
+      <div style="display:flex;gap:.75rem;">
+        <button class="btn-ghost" onclick="goBackToAmount()">← Back</button>
+        <button class="btn-primary" id="confirmBtn" onclick="executeDeduction()" style="flex:2;">✓ Confirm & Deduct</button>
+      </div>
+    </div>
+
+    <!-- ══ SUCCESS ══ -->
+    <div id="successContent" style="display:none;">
+      <div class="success-card">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Transaction Complete</div>
+        <div class="success-msg">Fuel has been dispensed. Customer balance updated.</div>
+      </div>
+      <div class="confirm-card" id="receiptCard" style="margin-bottom:1.25rem;">
+        <div style="font-family:var(--font-h);font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;">Receipt</div>
+        <div class="receipt-row"><span>Customer</span><span id="rec-name" style="font-weight:600;">—</span></div>
+        <div class="receipt-row"><span>Amount</span><span id="rec-amount" style="color:var(--red);font-weight:700;">—</span></div>
+        <div class="receipt-row"><span>New Balance</span><span id="rec-balance" style="color:var(--green);font-weight:600;">—</span></div>
+        <div class="receipt-row"><span>Reference</span><span id="rec-ref" style="font-size:.78rem;color:var(--muted);">—</span></div>
+        <div class="receipt-row"><span>Time</span><span id="rec-time" style="font-size:.78rem;color:var(--muted);">—</span></div>
+      </div>
+      <button class="btn-primary" onclick="resetToScan()">⛽ Next Customer</button>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, addDoc, collection,
+         increment, serverTimestamp, runTransaction }
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+const app  = initializeApp({
+  apiKey:"AIzaSyB-Q-MFZDCgHnaVgMRrgxEL9YPrIqZwUrU",
+  authDomain:"redfuel-a2152.firebaseapp.com",
+  projectId:"redfuel-a2152",
+  storageBucket:"redfuel-a2152.firebasestorage.app",
+  messagingSenderId:"782154176195",
+  appId:"1:782154176195:web:46af20e4252e415ba77476"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+/* ── State ── */
+let _attendant   = null;
+let _customer    = null;
+let _deductAmount = 0;
+let _deductLitres = 0;
+let _fuelType    = "petrol";
+let _inputMode   = "amount";
+let _scanner     = null;
+let _currentPrice = { petrol: 5400, diesel: 4900 }; // UGX — loaded from Firestore
+
+/* ── Auth ── */
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    const snap = await getDoc(doc(db,"attendants",user.uid));
+    if (snap.exists()) {
+      _attendant = { uid: user.uid, ...snap.data() };
+      document.getElementById("attNamePill").textContent = _attendant.name || "Attendant";
+      showScreen("app");
+      loadPrices();
+      initScanner();
+    } else {
+      await signOut(auth);
+    }
+  } else {
+    showScreen("auth");
+  }
+});
+
+window.attLogin = async () => {
+  const id  = document.getElementById("attId").value.trim();
+  const pin = document.getElementById("attPin").value;
+  const err = document.getElementById("authErr");
+  err.style.display="none";
+  if (!id||!pin) { showErr(err,"Please enter your ID and PIN."); return; }
+  const btn = document.getElementById("authBtn");
+  btn.disabled=true; btn.textContent="Signing in…";
+  try {
+    /* Attendant login — ID is their email or phone converted to email */
+    const email = id.includes("@") ? id : `att_${id.replace(/\s/g,"")}@nero-wallet.app`;
+    await signInWithEmailAndPassword(auth, email, pin + "_att");
+  } catch(e) {
+    showErr(err,"Incorrect ID or PIN. Contact your manager.");
+  } finally { btn.disabled=false; btn.textContent="Sign In"; }
+};
+
+window.attSignOut = async () => {
+  if (_scanner) { try { await _scanner.stop(); } catch(e) {} }
+  await signOut(auth);
+};
+
+/* ── Load current fuel prices ── */
+async function loadPrices() {
+  try {
+    const snap = await getDoc(doc(db,"fuel_prices","current"));
+    if (snap.exists()) {
+      _currentPrice.petrol = snap.data().petrol || 5400;
+      _currentPrice.diesel = snap.data().diesel || 4900;
+      document.getElementById("pricePerLitre").textContent =
+        `UGX ${(_fuelType==="petrol"?_currentPrice.petrol:_currentPrice.diesel).toLocaleString("en-UG")}`;
+    }
+  } catch(e) {}
+}
+
+/* ── QR Scanner ── */
+function initScanner() {
+  _scanner = new Html5Qrcode("scanner-viewport");
+  _scanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 220, height: 220 } },
+    qrCode => {
+      _scanner.stop().catch(()=>{});
+      handleQRScan(qrCode);
+    },
+    () => {}
+  ).catch(e => {
+    document.getElementById("scanner-viewport").innerHTML =
+      `<div style="padding:2rem;text-align:center;color:var(--muted);font-size:.85rem;">Camera not available. Use manual entry below.</div>`;
+  });
+}
+
+function handleQRScan(raw) {
+  try {
+    const data = JSON.parse(raw);
+    if (data.id) lookupCustomer(data.id);
+    else if (data.acc) lookupByAccountNumber(data.acc);
+    else _showToast("Invalid QR code","error");
+  } catch(e) { _showToast("Could not read QR code","error"); }
+}
+
+window.lookupManual = () => {
+  const acc = document.getElementById("manualAccNum").value.trim().toUpperCase();
+  if (!acc) { _showToast("Enter an account number","error"); return; }
+  lookupByAccountNumber(acc);
+};
+
+async function lookupCustomer(uid) {
+  try {
+    const snap = await getDoc(doc(db,"customers",uid));
+    if (!snap.exists()||snap.data().status!=="active") { _showToast("Customer not found","error"); return; }
+    _customer = { uid, ...snap.data() };
+    showStep2();
+  } catch(e) { _showToast("Error looking up customer","error"); }
+}
+
+async function lookupByAccountNumber(accNum) {
+  /* In production: query index on accountNumber field */
+  /* For demo: requires knowing the UID — in real app use Firestore query */
+  _showToast("Searching…");
+  try {
+    const { query: q, collection: col, where, getDocs: gd } =
+      await import("https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js");
+    const snap = await gd(q(col(db,"customers"), where("accountNumber","==",accNum)));
+    if (snap.empty) { _showToast("Account not found","error"); return; }
+    const d = snap.docs[0];
+    _customer = { uid: d.id, ...d.data() };
+    showStep2();
+  } catch(e) { _showToast("Error looking up account","error"); }
+}
+
+function showStep2() {
+  document.getElementById("step1Content").style.display = "none";
+  document.getElementById("step2Content").style.display = "block";
+  setStep(2);
+
+  const fmt = n => n.toLocaleString("en-UG");
+  const initials = _customer.name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+  document.getElementById("custAvatar").textContent  = initials;
+  document.getElementById("custName").textContent    = _customer.name;
+  document.getElementById("custNumber").textContent  = _customer.accountNumber;
+  document.getElementById("custBalance").textContent = fmt(_customer.balance||0);
+}
+
+/* ── Amount input ── */
+window.selectFuelType = (type, btn) => {
+  _fuelType = type;
+  document.querySelectorAll(".fuel-type-btn").forEach(b=>b.classList.remove("selected"));
+  btn.classList.add("selected");
+  document.getElementById("pricePerLitre").textContent =
+    `UGX ${(_fuelType==="petrol"?_currentPrice.petrol:_currentPrice.diesel).toLocaleString("en-UG")}`;
+  if (_inputMode==="litres") calcFromLitres();
+};
+
+window.setInputMode = (mode, tab) => {
+  _inputMode = mode;
+  document.querySelectorAll(".amount-tab").forEach(t=>t.classList.remove("active"));
+  tab.classList.add("active");
+  document.getElementById("amountField").style.display  = mode==="amount" ? "block" : "none";
+  document.getElementById("litresField").style.display  = mode==="litres" ? "block" : "none";
+  updatePreview();
+};
+
+window.calcFromLitres = () => {
+  const litres = parseFloat(document.getElementById("deductLitres").value)||0;
+  const price  = _fuelType==="petrol" ? _currentPrice.petrol : _currentPrice.diesel;
+  _deductAmount = Math.round(litres * price);
+  _deductLitres = litres;
+  updatePreview();
+};
+
+window.updatePreview = () => {
+  if (_inputMode==="amount") {
+    _deductAmount = parseFloat(document.getElementById("deductAmount").value)||0;
+    const price   = _fuelType==="petrol" ? _currentPrice.petrol : _currentPrice.diesel;
+    _deductLitres = price > 0 ? _deductAmount/price : 0;
+  }
+  const preview = document.getElementById("amountPreview");
+  const insuff  = document.getElementById("insufficientMsg");
+  if (_deductAmount > 0) {
+    preview.style.display = "block";
+    document.getElementById("previewAmount").textContent = `UGX ${_deductAmount.toLocaleString("en-UG")}`;
+    insuff.style.display = (_deductAmount > (_customer?.balance||0)) ? "block" : "none";
+  } else {
+    preview.style.display = "none";
+    insuff.style.display  = "none";
+  }
+};
+
+window.proceedToConfirm = () => {
+  if (!_deductAmount || _deductAmount <= 0) { _showToast("Please enter an amount","error"); return; }
+  if (_deductAmount > (_customer?.balance||0)) { _showToast("Insufficient customer balance","error"); return; }
+  if (_deductAmount > 2000000) { _showToast("Amount exceeds single transaction limit","error"); return; }
+
+  const fmt = n => n.toLocaleString("en-UG");
+  const after = (_customer.balance||0) - _deductAmount;
+
+  document.getElementById("conf-name").textContent     = _customer.name;
+  document.getElementById("conf-acc").textContent      = _customer.accountNumber;
+  document.getElementById("conf-fuel").textContent     = _fuelType.charAt(0).toUpperCase()+_fuelType.slice(1);
+  document.getElementById("conf-litres").textContent   = _deductLitres > 0 ? `${_deductLitres.toFixed(2)}L` : "—";
+  document.getElementById("conf-amount").textContent   = `UGX ${fmt(_deductAmount)}`;
+  document.getElementById("conf-before").textContent   = `UGX ${fmt(_customer.balance||0)}`;
+  document.getElementById("conf-after").textContent    = `UGX ${fmt(after)}`;
+  document.getElementById("conf-station").textContent  = _attendant?.stationName || "NERO Station";
+  document.getElementById("conf-attendant").textContent= _attendant?.name || "—";
+
+  document.getElementById("step2Content").style.display = "none";
+  document.getElementById("step3Content").style.display = "block";
+  setStep(3);
+};
+
+window.goBackToAmount = () => {
+  document.getElementById("step3Content").style.display = "none";
+  document.getElementById("step2Content").style.display = "block";
+  setStep(2);
+};
+
+/* ── Execute Deduction (atomic Firestore transaction) ── */
+window.executeDeduction = async () => {
+  const btn = document.getElementById("confirmBtn");
+  const err = document.getElementById("confirmErr");
+  err.style.display = "none";
+  btn.disabled=true; btn.textContent="Processing…";
+
+  try {
+    const txRef   = doc(db,"transactions",`tx_${Date.now()}_${_customer.uid.slice(0,6)}`);
+    const custRef = doc(db,"customers",_customer.uid);
+    const ref     = "TX" + Date.now();
+
+    /* Atomic transaction — balance check + deduction in one operation */
+    await runTransaction(db, async tx => {
+      const custSnap = await tx.get(custRef);
+      if (!custSnap.exists()) throw new Error("Customer not found");
+      const current  = custSnap.data().balance||0;
+      if (current < _deductAmount) throw new Error("Insufficient balance");
+
+      const newBalance = current - _deductAmount;
+
+      tx.update(custRef, {
+        balance: newBalance,
+        lastActivity: serverTimestamp()
+      });
+
+      tx.set(txRef, {
+        customerId:    _customer.uid,
+        accountNumber: _customer.accountNumber,
+        attendantId:   _attendant.uid,
+        attendantName: _attendant.name,
+        stationId:     _attendant.stationId || "unknown",
+        stationName:   _attendant.stationName || "NERO Station",
+        type:          "deduct",
+        fuelType:      _fuelType,
+        litres:        _deductLitres || null,
+        amount:        _deductAmount,
+        balanceBefore: current,
+        balanceAfter:  newBalance,
+        reference:     ref,
+        status:        "success",
+        timestamp:     serverTimestamp(),
+      });
+    });
+
+    /* Show success */
+    const fmt  = n => n.toLocaleString("en-UG");
+    const after= (_customer.balance||0) - _deductAmount;
+    document.getElementById("rec-name").textContent    = _customer.name;
+    document.getElementById("rec-amount").textContent  = `UGX ${fmt(_deductAmount)}`;
+    document.getElementById("rec-balance").textContent = `UGX ${fmt(after)}`;
+    document.getElementById("rec-ref").textContent     = ref;
+    document.getElementById("rec-time").textContent    = new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+
+    document.getElementById("step3Content").style.display = "none";
+    document.getElementById("successContent").style.display = "block";
+    _showToast("Transaction complete ✓");
+
+  } catch(e) {
+    showErr(err, e.message==="Insufficient balance"
+      ? "Transaction failed: customer has insufficient balance."
+      : "Transaction failed. Please try again.");
+  } finally { btn.disabled=false; btn.textContent="✓ Confirm & Deduct"; }
+};
+
+/* ── Reset ── */
+window.resetToScan = () => {
+  _customer = null; _deductAmount=0; _deductLitres=0; _fuelType="petrol"; _inputMode="amount";
+  ["step2Content","step3Content","successContent"].forEach(id => { document.getElementById(id).style.display="none"; });
+  document.getElementById("step1Content").style.display = "block";
+  document.getElementById("deductAmount").value = "";
+  document.getElementById("deductLitres").value = "";
+  document.getElementById("manualAccNum").value = "";
+  document.getElementById("amountPreview").style.display="none";
+  document.getElementById("insufficientMsg").style.display="none";
+  setStep(1);
+  /* Restart scanner */
+  if (_scanner) {
+    _scanner.start({ facingMode:"environment" },{fps:10,qrbox:{width:220,height:220}},
+      qrCode => { _scanner.stop().catch(()=>{}); handleQRScan(qrCode); }, ()=>{}).catch(()=>{});
+  }
+};
+
+/* ── UI helpers ── */
+window.showScreen = id => {
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+};
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById(`step${i}`);
+    el.classList.remove("active","done");
+    if (i<n) el.classList.add("done");
+    else if (i===n) el.classList.add("active");
+  });
+}
+function showErr(el,msg) { el.textContent=msg; el.style.display="block"; }
+window._showToast = (msg,type="success") => {
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className=type==="error"?"error":"";
+  t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),3500);
+};
+</script>
+</body>
+</html>
