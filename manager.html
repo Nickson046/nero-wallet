@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NERO Manager Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--red:#e8000d;--red-dark:#b0000a;--black:#0a0a0a;--dark:#111111;--dark2:#1a1a1a;--dark3:#222222;--muted:#888888;--white:#ffffff;--green:#22c55e;--amber:#f59e0b;--blue:#3b82f6;--font-h:'Barlow Condensed',sans-serif;--font-b:'Barlow',sans-serif;--r:10px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-b);background:var(--black);color:var(--white);min-height:100vh;display:flex;}
+button{cursor:pointer;font-family:var(--font-b);}
+
+/* ── SIDEBAR ── */
+.sidebar{width:240px;background:var(--dark);border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.sidebar-logo{padding:1.5rem;border-bottom:1px solid rgba(255,255,255,.06);}
+.sidebar-logo-text{font-family:var(--font-h);font-size:1.4rem;font-weight:900;letter-spacing:.08em;color:var(--white);}
+.sidebar-logo-text span{color:var(--red);}
+.sidebar-sub{font-family:var(--font-h);font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:.15rem;}
+.sidebar-nav{flex:1;padding:1rem 0;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:.85rem;padding:.85rem 1.5rem;font-family:var(--font-h);font-size:.88rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45);cursor:pointer;transition:all .2s;border-left:3px solid transparent;}
+.nav-item:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
+.nav-item.active{color:var(--white);background:rgba(232,0,13,.08);border-left-color:var(--red);}
+.nav-icon{font-size:1.1rem;width:20px;text-align:center;}
+.sidebar-footer{padding:1.25rem 1.5rem;border-top:1px solid rgba(255,255,255,.06);}
+.mgr-pill{font-size:.78rem;color:var(--muted);margin-bottom:.75rem;}
+.mgr-pill strong{color:var(--white);display:block;}
+.logout-btn{width:100%;background:transparent;border:1px solid rgba(232,0,13,.3);color:rgba(232,0,13,.7);padding:.5rem;border-radius:4px;font-family:var(--font-h);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;transition:all .2s;}
+.logout-btn:hover{background:rgba(232,0,13,.1);border-color:var(--red);color:var(--red);}
+
+/* ── MAIN AREA ── */
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{background:var(--dark);border-bottom:1px solid rgba(255,255,255,.06);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.page-title{font-family:var(--font-h);font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--white);}
+.topbar-right{display:flex;align-items:center;gap:1rem;}
+.live-badge{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:100px;padding:.3rem .85rem;font-family:var(--font-h);font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--green);display:flex;align-items:center;gap:.4rem;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.content{padding:2rem;flex:1;}
+
+/* ── PANELS ── */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-bottom:2rem;}
+.stat-card{background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:1.5rem;}
+.stat-label{font-family:var(--font-h);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;}
+.stat-value{font-family:var(--font-h);font-size:1.8rem;font-weight:900;color:var(--white);line-height:1;}
+.stat-value.red{color:var(--red);}
+.stat-value.green{color:var(--green);}
+.stat-sub{font-size:.75rem;color:var(--muted);margin-top:.4rem;}
+
+/* ── TABLE ── */
+.table-wrap{background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);overflow:hidden;margin-bottom:1.5rem;}
+.table-head{padding:1.25rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;}
+.table-title{font-family:var(--font-h);font-size:.82rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.table-actions{display:flex;gap:.65rem;}
+.tbl-btn{background:var(--dark2);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:.4rem .9rem;font-family:var(--font-h);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);transition:all .2s;}
+.tbl-btn:hover{border-color:rgba(255,255,255,.2);color:var(--white);}
+.tbl-btn.red{border-color:rgba(232,0,13,.3);color:var(--red);}
+.tbl-btn.red:hover{background:rgba(232,0,13,.1);}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:.85rem 1.5rem;text-align:left;font-family:var(--font-h);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap;}
+tbody td{padding:.9rem 1.5rem;font-size:.88rem;color:rgba(255,255,255,.7);border-bottom:1px solid rgba(255,255,255,.04);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:rgba(255,255,255,.02);}
+.badge{display:inline-block;font-family:var(--font-h);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;padding:.2rem .6rem;border-radius:4px;}
+.badge.success{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2);}
+.badge.pending{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2);}
+.badge.failed{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+.badge.deduct{background:rgba(232,0,13,.08);color:var(--red);border:1px solid rgba(232,0,13,.15);}
+.badge.topup{background:rgba(34,197,94,.08);color:var(--green);border:1px solid rgba(34,197,94,.15);}
+.amount-cell{font-family:var(--font-h);font-size:.95rem;font-weight:700;}
+.amount-cell.neg{color:var(--red);}
+.amount-cell.pos{color:var(--green);}
+.loading-row td{text-align:center;padding:2.5rem;color:var(--muted);}
+
+/* ── FILTER ROW ── */
+.filter-row{display:flex;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+.filter-select{background:var(--dark);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);padding:.55rem 1rem;font-family:var(--font-b);font-size:.85rem;cursor:pointer;}
+.filter-input{background:var(--dark);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);padding:.55rem 1rem;font-family:var(--font-b);font-size:.85rem;width:200px;}
+.filter-input::placeholder{color:var(--muted);}
+
+/* ── WITHDRAWAL FORM ── */
+.withdraw-form{background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:2rem;max-width:520px;}
+.withdraw-form h3{font-family:var(--font-h);font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--white);margin-bottom:1.5rem;padding-bottom:.75rem;border-bottom:1px solid rgba(255,255,255,.07);}
+.field{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.1rem;}
+.field label{font-family:var(--font-h);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+.field input,.field select{background:var(--dark2);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);padding:.8rem 1rem;font-family:var(--font-b);font-size:.95rem;width:100%;transition:border-color .25s;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--red);}
+.wallet-balance-box{background:rgba(232,0,13,.06);border:1px solid rgba(232,0,13,.15);border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;}
+.wbb-label{font-family:var(--font-h);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;}
+.wbb-value{font-family:var(--font-h);font-size:2rem;font-weight:900;color:var(--white);}
+.wbb-sub{font-size:.75rem;color:var(--muted);margin-top:.25rem;}
+.btn-primary{background:var(--red);color:#fff;border:none;border-radius:6px;padding:.9rem 2rem;font-family:var(--font-h);font-size:.95rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;transition:background .25s;}
+.btn-primary:hover{background:var(--red-dark);}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;}
+.err{background:rgba(255,50,50,.08);border:1px solid rgba(255,50,50,.25);border-radius:6px;padding:.65rem 1rem;font-size:.85rem;color:#ff5555;margin-bottom:1rem;display:none;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:2rem;right:2rem;background:var(--dark);border:1px solid rgba(34,197,94,.3);border-left:3px solid var(--green);border-radius:8px;padding:.75rem 1.25rem;font-family:var(--font-h);font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;color:var(--green);box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;opacity:0;transform:translateY(20px);transition:all .35s cubic-bezier(.34,1.56,.64,1);}
+#toast.show{opacity:1;transform:translateY(0);}
+#toast.error{border-left-color:#ef4444;border-color:rgba(239,68,68,.3);color:#ef4444;}
+
+/* ── AUTH OVERLAY ── */
+#authOverlay{position:fixed;inset:0;background:var(--black);z-index:999;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.auth-box{width:100%;max-width:380px;background:var(--dark);border:1px solid rgba(255,255,255,.07);border-top:3px solid var(--red);border-radius:var(--r);padding:2.5rem 2rem;display:flex;flex-direction:column;gap:1.25rem;}
+.auth-logo{font-family:var(--font-h);font-size:1.8rem;font-weight:900;color:var(--white);text-align:center;}
+.auth-logo span{color:var(--red);}
+.auth-sub{font-family:var(--font-h);font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:center;margin-top:-.5rem;}
+.auth-field{display:flex;flex-direction:column;gap:.4rem;}
+.auth-field label{font-family:var(--font-h);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.auth-field input{background:var(--dark2);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);padding:.85rem 1rem;font-family:var(--font-b);font-size:1rem;width:100%;transition:border-color .25s;}
+.auth-field input:focus{outline:none;border-color:var(--red);}
+.auth-btn{background:var(--red);color:#fff;border:none;border-radius:6px;padding:.9rem;font-family:var(--font-h);font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;transition:background .25s;}
+.auth-btn:hover{background:var(--red-dark);}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed;}
+.auth-err{background:rgba(255,50,50,.08);border:1px solid rgba(255,50,50,.25);border-radius:6px;padding:.65rem 1rem;font-size:.85rem;color:#ff5555;text-align:center;display:none;}
+
+@media(max-width:1024px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:768px){.sidebar{transform:translateX(-100%);}.main{margin-left:0;}.stats-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH OVERLAY ── -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-logo">NE<span>RO</span></div>
+    <div class="auth-sub">Manager Dashboard</div>
+    <div class="auth-field">
+      <label>Email</label>
+      <input type="email" id="mgrEmail" placeholder="manager@nero.com" autocomplete="email">
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input type="password" id="mgrPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="auth-err" id="mgrAuthErr"></div>
+    <button class="auth-btn" id="mgrLoginBtn" onclick="mgrLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-text">NE<span>RO</span></div>
+    <div class="sidebar-sub">Manager Portal</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="showPanel('overview')"><span class="nav-icon">📊</span>Overview</div>
+    <div class="nav-item" onclick="showPanel('transactions')"><span class="nav-icon">💳</span>Transactions</div>
+    <div class="nav-item" onclick="showPanel('customers')"><span class="nav-icon">👥</span>Customers</div>
+    <div class="nav-item" onclick="showPanel('attendants')"><span class="nav-icon">👷</span>Attendants</div>
+    <div class="nav-item" onclick="showPanel('topups')"><span class="nav-icon">⬆️</span>Top-Ups</div>
+    <div class="nav-item" onclick="showPanel('withdraw')"><span class="nav-icon">🏦</span>Withdraw Funds</div>
+    <div class="nav-item" onclick="showPanel('prices')"><span class="nav-icon">⛽</span>Fuel Prices</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="mgr-pill">Signed in as<strong id="mgrName">—</strong></div>
+    <button class="logout-btn" onclick="mgrLogout()">⏻ Sign Out</button>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Overview</div>
+    <div class="topbar-right">
+      <div class="live-badge"><div class="live-dot"></div>Live</div>
+      <div style="font-size:.82rem;color:var(--muted);" id="lastRefresh">—</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ OVERVIEW ══ -->
+    <div class="panel active" id="panel-overview">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Customer Balances</div>
+          <div class="stat-value red" id="stat-total-balance">UGX —</div>
+          <div class="stat-sub">Money held in wallets</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Top-Ups Today</div>
+          <div class="stat-value green" id="stat-topups-today">UGX —</div>
+          <div class="stat-sub" id="stat-topup-count">— transactions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Fuel Sales Today</div>
+          <div class="stat-value" id="stat-sales-today">UGX —</div>
+          <div class="stat-sub" id="stat-sales-count">— transactions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Customers</div>
+          <div class="stat-value" id="stat-customers">—</div>
+          <div class="stat-sub">Registered wallet users</div>
+        </div>
+      </div>
+
+      <!-- Recent activity -->
+      <div class="table-wrap">
+        <div class="table-head">
+          <div class="table-title">Recent Transactions</div>
+          <div class="table-actions">
+            <button class="tbl-btn" onclick="loadTransactions();showPanel('transactions')">View All</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Time</th><th>Customer</th><th>Type</th><th>Amount</th><th>Station</th><th>Status</th>
+          </tr></thead>
+          <tbody id="overview-tx-body">
+            <tr class="loading-row"><td colspan="6">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ TRANSACTIONS ══ -->
+    <div class="panel" id="panel-transactions">
+      <div class="filter-row">
+        <select class="filter-select" id="txTypeFilter" onchange="loadTransactions()">
+          <option value="">All Types</option>
+          <option value="topup">Top-Ups</option>
+          <option value="deduct">Fuel Deductions</option>
+          <option value="refund">Refunds</option>
+        </select>
+        <select class="filter-select" id="txStationFilter" onchange="loadTransactions()">
+          <option value="">All Stations</option>
+          <option value="kiwoko">Kiwoko</option>
+          <option value="nakaseke">Nakaseke</option>
+          <option value="butalangu">Butalangu</option>
+        </select>
+        <input class="filter-input" type="date" id="txDateFilter" onchange="loadTransactions()">
+        <button class="tbl-btn" onclick="exportCSV()">📥 Export CSV</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head">
+          <div class="table-title">All Transactions</div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Ref</th><th>Time</th><th>Customer</th><th>Type</th><th>Fuel</th><th>Litres</th><th>Amount</th><th>Bal After</th><th>Attendant</th><th>Station</th>
+          </tr></thead>
+          <tbody id="tx-body">
+            <tr class="loading-row"><td colspan="10">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ CUSTOMERS ══ -->
+    <div class="panel" id="panel-customers">
+      <div class="filter-row">
+        <input class="filter-input" type="text" id="custSearch" placeholder="Search name or account…" oninput="searchCustomers()">
+      </div>
+      <div class="table-wrap">
+        <div class="table-head"><div class="table-title">All Customers</div></div>
+        <table>
+          <thead><tr>
+            <th>Account #</th><th>Name</th><th>Phone</th><th>Balance</th><th>Status</th><th>Joined</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="cust-body">
+            <tr class="loading-row"><td colspan="7">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ ATTENDANTS ══ -->
+    <div class="panel" id="panel-attendants">
+      <div class="table-wrap" style="margin-bottom:1.5rem;">
+        <div class="table-head">
+          <div class="table-title">Attendants</div>
+          <div class="table-actions">
+            <button class="tbl-btn" onclick="showAddAttendant()">+ Add Attendant</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Name</th><th>Phone</th><th>Station</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="att-body">
+            <tr class="loading-row"><td colspan="5">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="withdraw-form" id="addAttForm" style="display:none;">
+        <h3>➕ Add New Attendant</h3>
+        <div class="field"><label>Full Name</label><input type="text" id="attName" placeholder="e.g. Peter Ssemakula"></div>
+        <div class="field"><label>Phone</label><input type="tel" id="attPhone" placeholder="+256 7XX XXX XXX"></div>
+        <div class="field"><label>Station</label>
+          <select id="attStation">
+            <option value="kiwoko">Kiwoko</option>
+            <option value="nakaseke">Nakaseke</option>
+            <option value="butalangu">Butalangu</option>
+          </select>
+        </div>
+        <div class="field"><label>Temporary PIN</label><input type="text" id="attTempPin" placeholder="4 digits" maxlength="4"></div>
+        <div class="err" id="attErr"></div>
+        <button class="btn-primary" onclick="addAttendant()">Create Attendant Account</button>
+      </div>
+    </div>
+
+    <!-- ══ TOP-UPS ══ -->
+    <div class="panel" id="panel-topups">
+      <!-- Cash top-up by manager -->
+      <div class="withdraw-form" style="margin-bottom:1.5rem;">
+        <h3>💵 Add Cash Top-Up for Customer</h3>
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.25rem;">Use this when a customer pays cash at the station and you want to add funds to their wallet directly.</p>
+        <div class="field"><label>Account Number</label><input type="text" id="cashAccNum" placeholder="NRO…" style="text-transform:uppercase;"></div>
+        <div class="field"><label>Amount (UGX)</label><input type="number" id="cashAmount" placeholder="e.g. 50000" inputmode="numeric"></div>
+        <div class="err" id="cashTopupErr"></div>
+        <button class="btn-primary" onclick="cashTopup()">Add Funds to Wallet</button>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head"><div class="table-title">All Top-Up History</div></div>
+        <table>
+          <thead><tr><th>Ref</th><th>Time</th><th>Customer</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody id="topup-body">
+            <tr class="loading-row"><td colspan="6">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ WITHDRAW ══ -->
+    <div class="panel" id="panel-withdraw">
+      <div class="wallet-balance-box">
+        <div class="wbb-label">Total Company Wallet Balance</div>
+        <div class="wbb-value" id="companyBalance">UGX —</div>
+        <div class="wbb-sub">This is the sum of all customer top-ups minus all fuel deductions + refunds. This money is held in your Flutterwave account.</div>
+      </div>
+
+      <div class="withdraw-form">
+        <h3>🏦 Request Withdrawal</h3>
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.25rem;">Withdrawals are processed within 1-2 business days. Requires manager password confirmation.</p>
+        <div class="field"><label>Amount to Withdraw (UGX)</label><input type="number" id="wdAmount" placeholder="e.g. 1000000" inputmode="numeric"></div>
+        <div class="field"><label>Destination Account</label>
+          <select id="wdMethod">
+            <option value="mtn_momo">MTN Mobile Money</option>
+            <option value="bank">Bank Transfer</option>
+            <option value="airtel">Airtel Money</option>
+          </select>
+        </div>
+        <div class="field"><label>Account Number / Phone</label><input type="text" id="wdAccount" placeholder="Phone or bank account number"></div>
+        <div class="field"><label>Account Name</label><input type="text" id="wdName" placeholder="Account holder name"></div>
+        <div class="field"><label>Confirm Your Password</label><input type="password" id="wdPassword" placeholder="Your manager password"></div>
+        <div class="err" id="wdErr"></div>
+        <button class="btn-primary" onclick="requestWithdrawal()">Submit Withdrawal Request</button>
+      </div>
+
+      <!-- Withdrawal history -->
+      <div class="table-wrap" style="margin-top:1.5rem;">
+        <div class="table-head"><div class="table-title">Withdrawal History</div></div>
+        <table>
+          <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Account</th><th>Status</th><th>Approved By</th></tr></thead>
+          <tbody id="wd-body">
+            <tr class="loading-row"><td colspan="6">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ FUEL PRICES ══ -->
+    <div class="panel" id="panel-prices">
+      <div class="withdraw-form">
+        <h3>⛽ Update Live Fuel Prices</h3>
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.25rem;">These prices are used to calculate litre-based deductions in the attendant app. They also display live on the NERO website.</p>
+        <div class="wallet-balance-box" style="margin-bottom:1.5rem;">
+          <div class="wbb-label">Currently Live</div>
+          <div style="display:flex;gap:2rem;margin-top:.5rem;">
+            <div><div style="font-size:.78rem;color:var(--muted);">Petrol</div><div style="font-family:var(--font-h);font-size:1.4rem;font-weight:900;color:var(--red);" id="livePetrol">—</div></div>
+            <div><div style="font-size:.78rem;color:var(--muted);">Diesel</div><div style="font-family:var(--font-h);font-size:1.4rem;font-weight:900;color:var(--red);" id="liveDiesel">—</div></div>
+          </div>
+        </div>
+        <div class="field"><label>New Petrol Price (UGX/litre)</label><input type="number" id="newPetrol" placeholder="e.g. 5400" inputmode="numeric"></div>
+        <div class="field"><label>New Diesel Price (UGX/litre)</label><input type="number" id="newDiesel" placeholder="e.g. 4900" inputmode="numeric"></div>
+        <div class="err" id="priceErr"></div>
+        <button class="btn-primary" onclick="updatePrices()">Update Live Prices</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider }
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, getDocs, addDoc, updateDoc, deleteDoc,
+         collection, query, orderBy, limit, where, onSnapshot, serverTimestamp, increment }
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+const app  = initializeApp({
+  apiKey:"AIzaSyB-Q-MFZDCgHnaVgMRrgxEL9YPrIqZwUrU",
+  authDomain:"redfuel-a2152.firebaseapp.com",
+  projectId:"redfuel-a2152",
+  storageBucket:"redfuel-a2152.firebasestorage.app",
+  messagingSenderId:"782154176195",
+  appId:"1:782154176195:web:46af20e4252e415ba77476"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+let _manager = null;
+
+/* ── Auth ── */
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    const snap = await getDoc(doc(db,"managers",user.uid));
+    if (snap.exists()) {
+      _manager = { uid:user.uid, ...snap.data() };
+      document.getElementById("mgrName").textContent = _manager.name || user.email;
+      document.getElementById("authOverlay").style.display = "none";
+      loadOverview();
+      loadPrices();
+    } else {
+      /* Check if admin */
+      const adminSnap = await getDoc(doc(db,"admins",user.uid));
+      if (adminSnap.exists()) {
+        _manager = { uid:user.uid, ...adminSnap.data(), isAdmin:true };
+        document.getElementById("mgrName").textContent = "Admin";
+        document.getElementById("authOverlay").style.display = "none";
+        loadOverview();
+        loadPrices();
+      } else {
+        await signOut(auth);
+        showAuthErr("Access denied. This portal is for managers only.");
+      }
+    }
+  } else {
+    document.getElementById("authOverlay").style.display = "flex";
+  }
+});
+
+window.mgrLogin = async () => {
+  const email = document.getElementById("mgrEmail").value.trim();
+  const pass  = document.getElementById("mgrPass").value;
+  const btn   = document.getElementById("mgrLoginBtn");
+  btn.disabled=true; btn.textContent="Signing in…";
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    showAuthErr("Incorrect email or password.");
+  } finally { btn.disabled=false; btn.textContent="Sign In"; }
+};
+
+window.mgrLogout = async () => { await signOut(auth); };
+
+function showAuthErr(msg) {
+  const el=document.getElementById("mgrAuthErr");
+  el.textContent=msg; el.style.display="block";
+}
+
+/* ── Panel navigation ── */
+window.showPanel = (name) => {
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById(`panel-${name}`).classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(n=>{ if(n.textContent.toLowerCase().includes(name.slice(0,4))) n.classList.add("active"); });
+  const titles = {overview:"Overview",transactions:"All Transactions",customers:"Customers",attendants:"Attendants",topups:"Top-Ups",withdraw:"Withdraw Funds",prices:"Fuel Prices"};
+  document.getElementById("pageTitle").textContent = titles[name]||name;
+  document.getElementById("lastRefresh").textContent = "Updated " + new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+
+  if (name==="transactions") loadTransactions();
+  if (name==="customers")    loadCustomers();
+  if (name==="attendants")   loadAttendants();
+  if (name==="topups")       loadTopups();
+  if (name==="withdraw")     loadWithdrawals();
+};
+
+/* ── Overview ── */
+async function loadOverview() {
+  try {
+    /* Recent 10 transactions */
+    const q    = query(collection(db,"transactions"), orderBy("timestamp","desc"), limit(10));
+    const snap = await getDocs(q);
+    const tbody = document.getElementById("overview-tx-body");
+    tbody.innerHTML="";
+    snap.forEach(d => {
+      const tx   = d.data();
+      const time = tx.timestamp?.toDate?.()?.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}) || "—";
+      tbody.innerHTML += `<tr>
+        <td>${time}</td>
+        <td>${tx.accountNumber||"—"}</td>
+        <td><span class="badge ${tx.type}">${tx.type}</span></td>
+        <td class="amount-cell ${tx.type==="deduct"?"neg":"pos"}">${tx.type==="deduct"?"-":"+"} UGX ${(tx.amount||0).toLocaleString("en-UG")}</td>
+        <td>${tx.stationName||"—"}</td>
+        <td><span class="badge success">${tx.status||"success"}</span></td>
+      </tr>`;
+    });
+
+    /* Stats — in production use Cloud Functions aggregation */
+    const custSnap = await getDocs(collection(db,"customers"));
+    let totalBal=0, custCount=0;
+    custSnap.forEach(d => { totalBal += d.data().balance||0; custCount++; });
+    document.getElementById("stat-total-balance").textContent = `UGX ${totalBal.toLocaleString("en-UG")}`;
+    document.getElementById("stat-customers").textContent     = custCount;
+
+    /* Today's transactions */
+    const today = new Date(); today.setHours(0,0,0,0);
+    const allTx = await getDocs(query(collection(db,"transactions"), orderBy("timestamp","desc"), limit(200)));
+    let topupTotal=0, topupCount=0, salesTotal=0, salesCount=0;
+    allTx.forEach(d => {
+      const tx = d.data();
+      const ts = tx.timestamp?.toDate?.();
+      if (ts && ts >= today) {
+        if (tx.type==="topup"||tx.type==="cash_topup") { topupTotal+=tx.amount||0; topupCount++; }
+        if (tx.type==="deduct") { salesTotal+=tx.amount||0; salesCount++; }
+      }
+    });
+    document.getElementById("stat-topups-today").textContent = `UGX ${topupTotal.toLocaleString("en-UG")}`;
+    document.getElementById("stat-topup-count").textContent  = `${topupCount} transactions`;
+    document.getElementById("stat-sales-today").textContent  = `UGX ${salesTotal.toLocaleString("en-UG")}`;
+    document.getElementById("stat-sales-count").textContent  = `${salesCount} transactions`;
+
+  } catch(e) { console.error(e); }
+}
+
+/* ── Transactions ── */
+window.loadTransactions = async () => {
+  const tbody = document.getElementById("tx-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="10">Loading…</td></tr>`;
+  try {
+    const typeF    = document.getElementById("txTypeFilter")?.value;
+    let q = query(collection(db,"transactions"), orderBy("timestamp","desc"), limit(100));
+    if (typeF) q = query(collection(db,"transactions"), where("type","==",typeF), orderBy("timestamp","desc"), limit(100));
+    const snap = await getDocs(q);
+    tbody.innerHTML="";
+    if (snap.empty) { tbody.innerHTML=`<tr class="loading-row"><td colspan="10">No transactions found.</td></tr>`; return; }
+    snap.forEach(d => {
+      const tx   = d.data();
+      const time = tx.timestamp?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) || "—";
+      tbody.innerHTML += `<tr>
+        <td style="font-family:var(--font-h);font-size:.75rem;color:var(--muted);">${(tx.reference||d.id).slice(0,12)}</td>
+        <td>${time}</td>
+        <td>${tx.accountNumber||"—"}</td>
+        <td><span class="badge ${tx.type}">${tx.type}</span></td>
+        <td>${tx.fuelType||"—"}</td>
+        <td>${tx.litres ? tx.litres.toFixed(2)+"L" : "—"}</td>
+        <td class="amount-cell ${tx.type==="deduct"?"neg":"pos"}">${tx.type==="deduct"?"-":"+"} UGX ${(tx.amount||0).toLocaleString("en-UG")}</td>
+        <td>UGX ${(tx.balanceAfter||0).toLocaleString("en-UG")}</td>
+        <td>${tx.attendantName||"—"}</td>
+        <td>${tx.stationName||"—"}</td>
+      </tr>`;
+    });
+  } catch(e) { tbody.innerHTML=`<tr class="loading-row"><td colspan="10">Error loading transactions.</td></tr>`; }
+};
+
+/* ── Customers ── */
+window.loadCustomers = async () => {
+  const tbody = document.getElementById("cust-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="7">Loading…</td></tr>`;
+  try {
+    const snap = await getDocs(query(collection(db,"customers"), orderBy("createdAt","desc"), limit(100)));
+    tbody.innerHTML="";
+    snap.forEach(d => {
+      const c    = d.data();
+      const date = c.createdAt?.toDate?.()?.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) || "—";
+      tbody.innerHTML += `<tr>
+        <td style="font-family:var(--font-h);letter-spacing:.08em;">${c.accountNumber||"—"}</td>
+        <td>${c.name||"—"}</td>
+        <td>${c.phone||"—"}</td>
+        <td class="amount-cell" style="color:var(--white);">UGX ${(c.balance||0).toLocaleString("en-UG")}</td>
+        <td><span class="badge ${c.status==="active"?"success":"failed"}">${c.status||"active"}</span></td>
+        <td>${date}</td>
+        <td>
+          <button class="tbl-btn" onclick="suspendCustomer('${d.id}','${c.status}')">
+            ${c.status==="active"?"Suspend":"Reinstate"}
+          </button>
+        </td>
+      </tr>`;
+    });
+  } catch(e) { tbody.innerHTML=`<tr class="loading-row"><td colspan="7">Error loading customers.</td></tr>`; }
+};
+
+window.searchCustomers = async () => {
+  /* Simplified — in production use Algolia or Firestore text index */
+  loadCustomers();
+};
+
+window.suspendCustomer = async (uid, currentStatus) => {
+  const newStatus = currentStatus==="active" ? "suspended" : "active";
+  if (!confirm(`${newStatus==="suspended"?"Suspend":"Reinstate"} this customer?`)) return;
+  try {
+    await updateDoc(doc(db,"customers",uid), { status:newStatus });
+    _showToast(`Customer ${newStatus} ✓`);
+    loadCustomers();
+  } catch(e) { _showToast("Error updating customer","error"); }
+};
+
+/* ── Attendants ── */
+window.loadAttendants = async () => {
+  const tbody = document.getElementById("att-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="5">Loading…</td></tr>`;
+  try {
+    const snap = await getDocs(collection(db,"attendants"));
+    tbody.innerHTML="";
+    if (snap.empty) { tbody.innerHTML=`<tr class="loading-row"><td colspan="5">No attendants yet.</td></tr>`; return; }
+    snap.forEach(d => {
+      const a = d.data();
+      tbody.innerHTML += `<tr>
+        <td>${a.name||"—"}</td>
+        <td>${a.phone||"—"}</td>
+        <td>${a.stationName||a.stationId||"—"}</td>
+        <td><span class="badge ${a.status==="active"?"success":"failed"}">${a.status||"active"}</span></td>
+        <td>
+          <button class="tbl-btn red" onclick="removeAttendant('${d.id}','${a.name}')">Remove</button>
+        </td>
+      </tr>`;
+    });
+  } catch(e) { tbody.innerHTML=`<tr class="loading-row"><td colspan="5">Error loading attendants.</td></tr>`; }
+};
+
+window.showAddAttendant = () => {
+  const f=document.getElementById("addAttForm");
+  f.style.display = f.style.display==="none" ? "block" : "none";
+};
+
+window.addAttendant = async () => {
+  const name    = document.getElementById("attName").value.trim();
+  const phone   = document.getElementById("attPhone").value.trim();
+  const station = document.getElementById("attStation").value;
+  const pin     = document.getElementById("attTempPin").value;
+  const errEl   = document.getElementById("attErr");
+  errEl.style.display="none";
+
+  if (!name||!phone||!pin) { errEl.textContent="Please fill in all fields."; errEl.style.display="block"; return; }
+  if (pin.length!==4) { errEl.textContent="PIN must be 4 digits."; errEl.style.display="block"; return; }
+
+  try {
+    const { createUserWithEmailAndPassword: createUser } =
+      await import("https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js");
+    const email = `att_${phone.replace(/\s|\+/g,"")}@nero-wallet.app`;
+    const cred  = await createUser(auth, email, pin+"_att");
+    await setDoc(doc(db,"attendants",cred.user.uid),{
+      name, phone, email,
+      stationId:   station,
+      stationName: station.charAt(0).toUpperCase()+station.slice(1),
+      status:      "active",
+      createdAt:   serverTimestamp(),
+      createdBy:   _manager.uid
+    });
+    _showToast(`Attendant ${name} added ✓`);
+    document.getElementById("addAttForm").style.display="none";
+    loadAttendants();
+  } catch(e) { errEl.textContent="Error: "+e.message; errEl.style.display="block"; }
+};
+
+window.removeAttendant = async (uid, name) => {
+  if (!confirm(`Remove attendant ${name}? They will no longer be able to log in.`)) return;
+  try {
+    await updateDoc(doc(db,"attendants",uid),{status:"removed"});
+    _showToast(`${name} removed ✓`);
+    loadAttendants();
+  } catch(e) { _showToast("Error removing attendant","error"); }
+};
+
+/* ── Top-Ups ── */
+window.loadTopups = async () => {
+  const tbody=document.getElementById("topup-body");
+  tbody.innerHTML=`<tr class="loading-row"><td colspan="6">Loading…</td></tr>`;
+  try {
+    const snap=await getDocs(query(collection(db,"topups"),orderBy("timestamp","desc"),limit(100)));
+    tbody.innerHTML="";
+    snap.forEach(d=>{
+      const t=d.data();
+      const time=t.timestamp?.toDate?.()?.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})||"—";
+      tbody.innerHTML+=`<tr>
+        <td style="font-family:var(--font-h);font-size:.75rem;color:var(--muted);">${t.reference||d.id.slice(0,10)}</td>
+        <td>${time}</td><td>${t.accountNumber||"—"}</td><td>${t.method||"—"}</td>
+        <td class="amount-cell pos">+ UGX ${(t.amount||0).toLocaleString("en-UG")}</td>
+        <td><span class="badge ${t.status==="success"?"success":t.status==="pending"?"pending":"failed"}">${t.status||"—"}</span></td>
+      </tr>`;
+    });
+  } catch(e) { tbody.innerHTML=`<tr class="loading-row"><td colspan="6">Error loading top-ups.</td></tr>`; }
+};
+
+window.cashTopup = async () => {
+  const accNum  = document.getElementById("cashAccNum").value.trim().toUpperCase();
+  const amount  = parseFloat(document.getElementById("cashAmount").value);
+  const errEl   = document.getElementById("cashTopupErr");
+  errEl.style.display="none";
+  if (!accNum||!amount||amount<1000) { errEl.textContent="Enter valid account number and amount (min UGX 1,000)."; errEl.style.display="block"; return; }
+
+  try {
+    const snap=await getDocs(query(collection(db,"customers"),where("accountNumber","==",accNum)));
+    if (snap.empty) { errEl.textContent="Account not found."; errEl.style.display="block"; return; }
+    const custDoc=snap.docs[0];
+    const current=custDoc.data().balance||0;
+
+    await updateDoc(doc(db,"customers",custDoc.id),{ balance:increment(amount), lastActivity:serverTimestamp() });
+    await addDoc(collection(db,"transactions"),{
+      customerId:custDoc.id, accountNumber:accNum,
+      type:"cash_topup", method:"cash", amount,
+      balanceBefore:current, balanceAfter:current+amount,
+      addedBy:_manager.uid, managedBy:_manager.name,
+      status:"success", timestamp:serverTimestamp()
+    });
+    await addDoc(collection(db,"topups"),{
+      customerId:custDoc.id, accountNumber:accNum,
+      amount, method:"cash", status:"success",
+      reference:"CASH_"+Date.now(), timestamp:serverTimestamp()
+    });
+
+    _showToast(`UGX ${amount.toLocaleString("en-UG")} added to ${accNum} ✓`);
+    document.getElementById("cashAccNum").value="";
+    document.getElementById("cashAmount").value="";
+    loadTopups();
+  } catch(e) { errEl.textContent="Error: "+e.message; errEl.style.display="block"; }
+};
+
+/* ── Withdraw ── */
+window.loadWithdrawals = async () => {
+  try {
+    /* Company balance = sum of all top-ups - sum of all deductions */
+    const allTx=await getDocs(collection(db,"transactions"));
+    let balance=0;
+    allTx.forEach(d=>{ const t=d.data(); if(t.type==="topup"||t.type==="cash_topup") balance+=t.amount||0; else if(t.type==="deduct") balance-=t.amount||0; });
+    document.getElementById("companyBalance").textContent=`UGX ${balance.toLocaleString("en-UG")}`;
+
+    const snap=await getDocs(query(collection(db,"withdrawals"),orderBy("timestamp","desc"),limit(50)));
+    const tbody=document.getElementById("wd-body");
+    tbody.innerHTML="";
+    if(snap.empty){tbody.innerHTML=`<tr class="loading-row"><td colspan="6">No withdrawals yet.</td></tr>`;return;}
+    snap.forEach(d=>{
+      const w=d.data();
+      const date=w.timestamp?.toDate?.()?.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})||"—";
+      tbody.innerHTML+=`<tr>
+        <td>${date}</td>
+        <td class="amount-cell neg">UGX ${(w.amount||0).toLocaleString("en-UG")}</td>
+        <td>${w.method||"—"}</td><td>${w.accountNumber||"—"}</td>
+        <td><span class="badge ${w.status==="approved"?"success":w.status==="pending"?"pending":"failed"}">${w.status||"pending"}</span></td>
+        <td>${w.approvedBy||"Pending"}</td>
+      </tr>`;
+    });
+  } catch(e) { console.error(e); }
+};
+
+window.requestWithdrawal = async () => {
+  const amount   = parseFloat(document.getElementById("wdAmount").value);
+  const method   = document.getElementById("wdMethod").value;
+  const account  = document.getElementById("wdAccount").value.trim();
+  const name     = document.getElementById("wdName").value.trim();
+  const password = document.getElementById("wdPassword").value;
+  const errEl    = document.getElementById("wdErr");
+  errEl.style.display="none";
+
+  if (!amount||amount<10000) { errEl.textContent="Minimum withdrawal is UGX 10,000."; errEl.style.display="block"; return; }
+  if (!account||!name||!password) { errEl.textContent="Please fill in all fields."; errEl.style.display="block"; return; }
+
+  try {
+    /* Re-authenticate manager before withdrawal */
+    const cred=EmailAuthProvider.credential(auth.currentUser.email, password);
+    await reauthenticateWithCredential(auth.currentUser, cred);
+
+    await addDoc(collection(db,"withdrawals"),{
+      amount, method, accountNumber:account, accountName:name,
+      requestedBy:_manager.uid, requestedByName:_manager.name,
+      status:"pending", timestamp:serverTimestamp()
+    });
+    _showToast("Withdrawal request submitted ✓");
+    ["wdAmount","wdAccount","wdName","wdPassword"].forEach(id=>document.getElementById(id).value="");
+    loadWithdrawals();
+  } catch(e) {
+    errEl.textContent = e.code==="auth/wrong-password" ? "Incorrect password." : "Error: "+e.message;
+    errEl.style.display="block";
+  }
+};
+
+/* ── Prices ── */
+window.loadPrices = async () => {
+  try {
+    const snap=await getDoc(doc(db,"fuel_prices","current"));
+    if(snap.exists()){
+      document.getElementById("livePetrol").textContent=`UGX ${(snap.data().petrol||0).toLocaleString("en-UG")}`;
+      document.getElementById("liveDiesel").textContent=`UGX ${(snap.data().diesel||0).toLocaleString("en-UG")}`;
+    }
+  } catch(e) {}
+};
+
+window.updatePrices = async () => {
+  const petrol=parseFloat(document.getElementById("newPetrol").value);
+  const diesel=parseFloat(document.getElementById("newDiesel").value);
+  const errEl=document.getElementById("priceErr");
+  errEl.style.display="none";
+  if(!petrol||!diesel||petrol<100||diesel<100){errEl.textContent="Please enter valid prices.";errEl.style.display="block";return;}
+  try {
+    await setDoc(doc(db,"fuel_prices","current"),{petrol,diesel,updatedAt:serverTimestamp(),updatedBy:_manager.uid},{merge:true});
+    _showToast(`Prices updated — Petrol UGX${petrol.toLocaleString("en-UG")} / Diesel UGX${diesel.toLocaleString("en-UG")} ✓`);
+    document.getElementById("newPetrol").value="";
+    document.getElementById("newDiesel").value="";
+    loadPrices();
+  } catch(e){errEl.textContent="Error: "+e.message;errEl.style.display="block";}
+};
+
+/* ── CSV Export ── */
+window.exportCSV = async () => {
+  try {
+    const snap=await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(500)));
+    const rows=[["Reference","Date","Customer","Type","Fuel","Litres","Amount","Balance After","Attendant","Station","Status"]];
+    snap.forEach(d=>{
+      const t=d.data();
+      const date=t.timestamp?.toDate?.()?.toLocaleString("en-GB")||"";
+      rows.push([t.reference||d.id,date,t.accountNumber||"",t.type||"",t.fuelType||"",t.litres||"",t.amount||0,t.balanceAfter||0,t.attendantName||"",t.stationName||"",t.status||""]);
+    });
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const a=document.createElement("a");
+    a.download=`NERO-Transactions-${new Date().toISOString().slice(0,10)}.csv`;
+    a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+    a.click();
+    _showToast("CSV exported ✓");
+  } catch(e){_showToast("Export failed","error");}
+};
+
+/* ── Toast ── */
+window._showToast = (msg,type="success") => {
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className=type==="error"?"error":"";
+  t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),3500);
+};
+</script>
+</body>
+</html>
