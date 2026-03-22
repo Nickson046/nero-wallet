@@ -160,6 +160,79 @@ button{cursor:pointer;font-family:var(--font-b);}
   </div>
 </div>
 
+
+<!-- ══ OFFLINE BANNER ══ -->
+<div id="offlineBanner" style="display:none;background:#b45309;border-bottom:1px solid #92400e;
+  padding:.65rem 1.5rem;font-family:var(--font-h);font-size:.78rem;letter-spacing:.1em;
+  text-transform:uppercase;color:#fef3c7;text-align:center;position:sticky;top:0;z-index:200;">
+  ⚠️ You are offline — transactions will be queued and synced when connected
+</div>
+
+<!-- ══ SYNC QUEUE BANNER ══ -->
+<div id="syncBanner" style="display:none;background:rgba(34,197,94,.1);border-bottom:1px solid rgba(34,197,94,.25);
+  padding:.65rem 1.5rem;font-family:var(--font-h);font-size:.78rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--green);text-align:center;position:sticky;top:0;z-index:200;">
+  🔄 Back online — syncing <span id="syncCount">0</span> queued transaction(s)…
+</div>
+
+<!-- ══ SHIFT SUMMARY MODAL ══ -->
+<div style="position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);
+  z-index:600;display:none;align-items:center;justify-content:center;padding:1.5rem;" id="shiftModal">
+  <div style="background:var(--dark);border:1px solid rgba(255,255,255,.1);border-top:3px solid var(--green);
+    border-radius:12px;padding:2rem;width:100%;max-width:420px;text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:.75rem;">📋</div>
+    <div style="font-family:var(--font-h);font-size:1.2rem;font-weight:700;text-transform:uppercase;
+      letter-spacing:.06em;color:var(--white);margin-bottom:.5rem;">Shift Summary</div>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:1.5rem;" id="shiftDate">—</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1.5rem;">
+      <div style="background:var(--dark2);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:1rem;">
+        <div style="font-family:var(--font-h);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;">Transactions</div>
+        <div style="font-family:var(--font-h);font-size:1.8rem;font-weight:900;color:var(--white);" id="shiftTxCount">0</div>
+      </div>
+      <div style="background:var(--dark2);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:1rem;">
+        <div style="font-family:var(--font-h);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;">Total Fuel Sold</div>
+        <div style="font-family:var(--font-h);font-size:1.1rem;font-weight:900;color:var(--red);" id="shiftTotal">UGX 0</div>
+      </div>
+      <div style="background:var(--dark2);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:1rem;">
+        <div style="font-family:var(--font-h);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;">Petrol</div>
+        <div style="font-family:var(--font-h);font-size:1.1rem;font-weight:900;color:var(--white);" id="shiftPetrol">0L</div>
+      </div>
+      <div style="background:var(--dark2);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:1rem;">
+        <div style="font-family:var(--font-h);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;">Diesel</div>
+        <div style="font-family:var(--font-h);font-size:1.1rem;font-weight:900;color:var(--white);" id="shiftDiesel">0L</div>
+      </div>
+    </div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:1.25rem;" id="shiftAttendant">—</div>
+    <button style="width:100%;background:var(--red);color:#fff;border:none;border-radius:6px;
+      padding:.9rem;font-family:var(--font-h);font-size:.95rem;font-weight:700;letter-spacing:.1em;
+      text-transform:uppercase;cursor:pointer;" onclick="document.getElementById('shiftModal').style.display='none'">
+      Close
+    </button>
+  </div>
+</div>
+
+<!-- ══ ZERO BALANCE ALERT ══ -->
+<div id="zeroBalanceAlert" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);
+  z-index:700;align-items:center;justify-content:center;padding:2rem;">
+  <div style="background:var(--dark);border:3px solid #ef4444;border-radius:12px;padding:2.5rem 2rem;
+    max-width:380px;width:100%;text-align:center;">
+    <div style="font-size:4rem;margin-bottom:1rem;">🚫</div>
+    <div style="font-family:var(--font-h);font-size:1.4rem;font-weight:700;text-transform:uppercase;
+      letter-spacing:.06em;color:#ef4444;margin-bottom:.75rem;">Insufficient Balance</div>
+    <div style="font-size:.95rem;color:rgba(255,255,255,.7);line-height:1.7;margin-bottom:.5rem;" id="zeroBalanceName">—</div>
+    <div style="font-family:var(--font-h);font-size:1.6rem;font-weight:900;color:#ef4444;margin-bottom:1rem;" id="zeroBalanceAmount">UGX 0</div>
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:1.75rem;">
+      This customer does not have enough funds for this transaction.<br>
+      Ask them to top up their NERO Wallet first.
+    </div>
+    <button style="width:100%;background:#ef4444;color:#fff;border:none;border-radius:6px;
+      padding:.9rem;font-family:var(--font-h);font-size:.95rem;font-weight:700;letter-spacing:.1em;
+      text-transform:uppercase;cursor:pointer;" onclick="document.getElementById('zeroBalanceAlert').style.display='none';resetToScan()">
+      Go Back — Rescan
+    </button>
+  </div>
+</div>
+
 <!-- ── AUTH ── -->
 <div class="screen active" id="auth">
   <div class="auth-box">
@@ -186,6 +259,7 @@ button{cursor:pointer;font-family:var(--font-b);}
     <div class="app-bar-logo">NE<span>RO</span> <span style="font-size:.65rem;color:var(--muted);font-weight:400;letter-spacing:.1em;">ATTENDANT</span></div>
     <div class="app-bar-right">
       <div class="attendant-pill" id="attNamePill">—</div>
+      <button onclick="showShiftSummary()" style="background:transparent;border:1px solid rgba(34,197,94,.3);color:var(--green);padding:.35rem .85rem;font-family:var(--font-h);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-right:.35rem;cursor:pointer;">📋 Shift</button>
       <button class="signout-btn" onclick="attSignOut()">⏻ Out</button>
     </div>
   </div>
@@ -502,6 +576,20 @@ function showStep2() {
   document.getElementById("custName").textContent    = _customer.name;
   document.getElementById("custNumber").textContent  = _customer.accountNumber;
   document.getElementById("custBalance").textContent = fmt(_customer.balance||0);
+
+  /* Zero balance alert — loud clear warning */
+  if ((_customer.balance||0) === 0) {
+    document.getElementById("zeroBalanceName").textContent =
+      `${_customer.name} — Account ${_customer.accountNumber}`;
+    document.getElementById("zeroBalanceAmount").textContent = "UGX 0";
+    document.getElementById("zeroBalanceAlert").style.display = "flex";
+    return;
+  }
+
+  /* Low balance warning inline */
+  if ((_customer.balance||0) < 10000) {
+    window._showToast(`⚠️ Low balance: UGX ${fmt(_customer.balance||0)}`, "error");
+  }
 }
 
 /* ── Amount input ── */
@@ -578,12 +666,199 @@ window.goBackToAmount = () => {
   setStep(2);
 };
 
+
+/* ══════════════════════════════════
+   OFFLINE QUEUE SYSTEM
+══════════════════════════════════ */
+const OFFLINE_QUEUE_KEY = "nero_att_offline_queue";
+
+function getOfflineQueue() {
+  try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]"); }
+  catch(e) { return []; }
+}
+
+function saveOfflineQueue(queue) {
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+}
+
+function queueOfflineTransaction(txData) {
+  const queue = getOfflineQueue();
+  queue.push({ ...txData, queuedAt: Date.now(), status: "pending_sync" });
+  saveOfflineQueue(queue);
+  window._showToast("Transaction queued — will sync when online ✓");
+}
+
+async function syncOfflineQueue() {
+  const queue = getOfflineQueue();
+  if (queue.length === 0) return;
+
+  const syncBanner = document.getElementById("syncBanner");
+  const syncCount  = document.getElementById("syncCount");
+  if (syncBanner) {
+    syncBanner.style.display = "block";
+    if (syncCount) syncCount.textContent = queue.length;
+  }
+
+  const synced = [];
+  for (const tx of queue) {
+    try {
+      /* Re-fetch customer to get latest balance */
+      const custSnap = await getDoc(doc(db,"customers",tx.customerId));
+      if (!custSnap.exists()) { synced.push(tx); continue; }
+
+      const current = custSnap.data().balance || 0;
+      if (current < tx.amount) {
+        window._showToast(`Sync failed — ${tx.accountNumber} has insufficient balance`, "error");
+        synced.push(tx);
+        continue;
+      }
+
+      const newBalance = current - tx.amount;
+
+      await runTransaction(db, async dbTx => {
+        const ref  = doc(db,"customers",tx.customerId);
+        const snap = await dbTx.get(ref);
+        if (snap.data().balance < tx.amount) throw new Error("Insufficient balance");
+        dbTx.update(ref, { balance: newBalance, lastActivity: serverTimestamp() });
+        dbTx.set(doc(collection(db,"transactions")), {
+          ...tx,
+          balanceBefore: current,
+          balanceAfter:  newBalance,
+          syncedAt:      serverTimestamp(),
+          offlineQueued: true,
+          status: "success"
+        });
+      });
+
+      synced.push(tx);
+      window._showToast(`Synced: ${tx.accountNumber} — UGX ${tx.amount.toLocaleString("en-UG")} ✓`);
+    } catch(e) {
+      console.warn("Sync failed for", tx.accountNumber, e);
+    }
+  }
+
+  /* Remove successfully synced items */
+  const remaining = queue.filter(tx => !synced.includes(tx));
+  saveOfflineQueue(remaining);
+
+  setTimeout(() => {
+    if (syncBanner) syncBanner.style.display = "none";
+  }, 3000);
+}
+
+/* Online/offline detection */
+window.addEventListener("offline", () => {
+  const b = document.getElementById("offlineBanner");
+  if (b) b.style.display = "block";
+});
+window.addEventListener("online", () => {
+  const b = document.getElementById("offlineBanner");
+  if (b) b.style.display = "none";
+  syncOfflineQueue();
+});
+if (!navigator.onLine) {
+  const b = document.getElementById("offlineBanner");
+  if (b) b.style.display = "block";
+}
+
+/* ══════════════════════════════════
+   SHIFT SUMMARY
+══════════════════════════════════ */
+window.showShiftSummary = async () => {
+  if (!_attendant) return;
+  const modal = document.getElementById("shiftModal");
+  modal.style.display = "flex";
+
+  /* Load today's transactions for this attendant */
+  const today = new Date(); today.setHours(0,0,0,0);
+  const now   = new Date();
+
+  document.getElementById("shiftDate").textContent =
+    `${today.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}`;
+  document.getElementById("shiftAttendant").textContent =
+    `${_attendant.name} · ${_attendant.stationName||_attendant.stationId||"—"} · ID: ${_attendant.attendantId||"—"}`;
+
+  try {
+    /* Simple query — filter client-side to avoid needing Firestore indexes */
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db,"transactions"), orderBy("timestamp","desc"), limit(300)));
+    } catch(e2) {
+      snap = await getDocs(collection(db,"transactions"));
+    }
+
+    let txCount=0, totalAmt=0, petrolL=0, dieselL=0;
+    snap.forEach(d => {
+      const tx = d.data();
+      const ts = tx.timestamp?.toDate?.();
+      if (tx.attendantId === _attendant.uid && ts && ts >= today && tx.type === "deduct") {
+        txCount++;
+        totalAmt += tx.amount || 0;
+        if (tx.fuelType === "petrol") petrolL += tx.litres || 0;
+        if (tx.fuelType === "diesel") dieselL += tx.litres || 0;
+      }
+    });
+
+    /* Also include offline queue */
+    const queue = getOfflineQueue();
+    queue.forEach(tx => {
+      if (tx.attendantId === _attendant.uid) {
+        txCount++;
+        totalAmt += tx.amount || 0;
+      }
+    });
+
+    document.getElementById("shiftTxCount").textContent = txCount;
+    document.getElementById("shiftTotal").textContent   = `UGX ${totalAmt.toLocaleString("en-UG")}`;
+    document.getElementById("shiftPetrol").textContent  = petrolL > 0 ? `${petrolL.toFixed(1)}L` : "—";
+    document.getElementById("shiftDiesel").textContent  = dieselL > 0 ? `${dieselL.toFixed(1)}L` : "—";
+
+  } catch(e) {
+    console.error("Shift summary error:", e);
+    document.getElementById("shiftTxCount").textContent = "0";
+    document.getElementById("shiftTotal").textContent   = "UGX 0";
+    document.getElementById("shiftPetrol").textContent  = "—";
+    document.getElementById("shiftDiesel").textContent  = "—";
+  }
+};
+
+
 /* ── Execute Deduction (atomic Firestore transaction) ── */
 window.executeDeduction = async () => {
   const btn = document.getElementById("confirmBtn");
   const err = document.getElementById("confirmErr");
   err.style.display = "none";
   btn.disabled=true; btn.textContent="Processing…";
+
+  /* If offline — queue the transaction */
+  if (!navigator.onLine) {
+    const offlineTx = {
+      customerId:    _customer.uid,
+      accountNumber: _customer.accountNumber,
+      attendantId:   _attendant.uid,
+      attendantName: _attendant.name,
+      stationId:     _attendant.stationId || "unknown",
+      stationName:   _attendant.stationName || "NERO Station",
+      type:          "deduct",
+      fuelType:      _fuelType,
+      litres:        _deductLitres || null,
+      amount:        _deductAmount,
+      reference:     "OFL_" + Date.now(),
+      timestamp:     new Date().toISOString(),
+    };
+    queueOfflineTransaction(offlineTx);
+
+    /* Show success with offline badge */
+    document.getElementById("rec-name").textContent    = _customer.name;
+    document.getElementById("rec-amount").textContent  = `UGX ${_deductAmount.toLocaleString("en-UG")}`;
+    document.getElementById("rec-balance").textContent = "Will sync when online";
+    document.getElementById("rec-ref").textContent     = offlineTx.reference;
+    document.getElementById("rec-time").textContent    = new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+    document.getElementById("step3Content").style.display = "none";
+    document.getElementById("successContent").style.display = "block";
+    btn.disabled=false; btn.textContent="✓ Confirm & Deduct";
+    return;
+  }
 
   try {
     const txRef   = doc(db,"transactions",`tx_${Date.now()}_${_customer.uid.slice(0,6)}`);

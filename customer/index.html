@@ -340,6 +340,8 @@ button { cursor:pointer; font-family:var(--font-b); }
 .loading { display:flex; align-items:center; justify-content:center; padding:3rem; gap:.75rem; color:var(--muted); }
 .spinner { width:20px; height:20px; border:2px solid rgba(255,255,255,.1); border-top-color:var(--red); border-radius:50%; animation:spin .8s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 
 /* ══ RESPONSIVE ══ */
 @media(min-width:480px) {
@@ -467,6 +469,25 @@ button { cursor:pointer; font-family:var(--font-b); }
       <div class="balance-card-number" id="cardNumber">—</div>
     </div>
 
+
+    <!-- Live fuel prices strip -->
+    <div id="fuelPriceStrip" style="display:flex;gap:.75rem;margin-bottom:1.25rem;">
+      <div style="flex:1;background:var(--dark);border:1px solid rgba(232,0,13,.2);border-radius:8px;padding:.85rem 1rem;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-family:var(--font-h);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);">Petrol</div>
+          <div style="font-family:var(--font-h);font-size:1.2rem;font-weight:900;color:var(--white);" id="homePetrolPrice">UGX —</div>
+        </div>
+        <div style="font-size:1.5rem;">⛽</div>
+      </div>
+      <div style="flex:1;background:var(--dark);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:.85rem 1rem;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-family:var(--font-h);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);">Diesel</div>
+          <div style="font-family:var(--font-h);font-size:1.2rem;font-weight:900;color:var(--white);" id="homeDieselPrice">UGX —</div>
+        </div>
+        <div style="font-size:1.5rem;">🛢</div>
+      </div>
+    </div>
+
     <!-- Quick actions -->
     <div class="quick-actions">
       <div class="quick-btn" onclick="showTab('topupTab')">
@@ -487,6 +508,25 @@ button { cursor:pointer; font-family:var(--font-b); }
     </div>
     <div class="tx-list" id="recentTxList">
       <div class="loading"><div class="spinner"></div> Loading…</div>
+    </div>
+
+
+    <!-- Referral section -->
+    <div style="background:linear-gradient(135deg,rgba(232,0,13,.08),rgba(0,0,0,.2));border:1px solid rgba(232,0,13,.2);border-radius:10px;padding:1.25rem;margin-top:1rem;">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;">
+        <span style="font-size:1.5rem;">🎁</span>
+        <div>
+          <div style="font-family:var(--font-h);font-size:.95rem;font-weight:700;color:var(--white);">Refer a Friend</div>
+          <div style="font-size:.78rem;color:var(--muted);">You both get UGX 5,000 when they top up for the first time</div>
+        </div>
+      </div>
+      <div style="background:var(--dark2);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;">
+        <div>
+          <div style="font-family:var(--font-h);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.2rem;">Your Referral Code</div>
+          <div style="font-family:var(--font-h);font-size:1.1rem;font-weight:700;letter-spacing:.15em;color:var(--red);" id="referralCode">—</div>
+        </div>
+        <button onclick="copyReferralCode()" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:.5rem .9rem;font-family:var(--font-h);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">📋 Copy</button>
+      </div>
     </div>
 
   </div><!-- /homeTab -->
@@ -587,7 +627,14 @@ button { cursor:pointer; font-family:var(--font-b); }
       <div class="profile-row">
         <div class="profile-row-left" style="font-size:.82rem;color:var(--muted);">Account ID: <span id="profileId" style="letter-spacing:.08em;"></span></div>
       </div>
-      <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
+      <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.06);">
+        <button class="logout-btn" onclick="handleLogout()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;">
+          <span>⏻</span> Sign Out of NERO Wallet
+        </button>
+        <p style="font-size:.72rem;color:rgba(255,255,255,.2);text-align:center;margin-top:.65rem;line-height:1.5;">
+          Your balance and QR code are safely stored.<br>Sign back in anytime.
+        </p>
+      </div>
     </div>
   </div>
 
@@ -626,6 +673,39 @@ button { cursor:pointer; font-family:var(--font-b); }
   </div>
 </div>
 
+
+<!-- ══ PIN CONFIRM MODAL ══ -->
+<div class="modal-overlay" id="pinConfirmModal">
+  <div class="modal" style="position:relative;text-align:center;">
+    <div class="modal-handle"></div>
+    <div style="font-size:2rem;margin-bottom:.75rem;">🔐</div>
+    <div class="modal-title">Confirm with PIN</div>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.25rem;" id="pinConfirmDesc">Enter your PIN to confirm this top-up.</p>
+    <div class="pin-display" id="pinConfirmDots">
+      <div class="pin-dot" id="pcd0"></div>
+      <div class="pin-dot" id="pcd1"></div>
+      <div class="pin-dot" id="pcd2"></div>
+      <div class="pin-dot" id="pcd3"></div>
+    </div>
+    <div style="color:#ef4444;font-size:.82rem;margin:.5rem 0;display:none;" id="pinConfirmError">Incorrect PIN. Try again.</div>
+    <div class="keypad" style="margin-top:1rem;">
+      <div class="key" onclick="_pcKey('1')">1</div>
+      <div class="key" onclick="_pcKey('2')">2</div>
+      <div class="key" onclick="_pcKey('3')">3</div>
+      <div class="key" onclick="_pcKey('4')">4</div>
+      <div class="key" onclick="_pcKey('5')">5</div>
+      <div class="key" onclick="_pcKey('6')">6</div>
+      <div class="key" onclick="_pcKey('7')">7</div>
+      <div class="key" onclick="_pcKey('8')">8</div>
+      <div class="key" onclick="_pcKey('9')">9</div>
+      <div class="key empty"></div>
+      <div class="key" onclick="_pcKey('0')">0</div>
+      <div class="key delete" onclick="_pcDel()">⌫</div>
+    </div>
+    <button class="btn-ghost" style="margin-top:1rem;width:100%;" onclick="closeModal('pinConfirmModal');_pcReset()">Cancel</button>
+  </div>
+</div>
+
 <!-- ══ TOPUP PROCESSING MODAL ══ -->
 <div class="modal-overlay" id="topupModal">
   <div class="modal" style="position:relative;text-align:center;">
@@ -653,6 +733,161 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
 import { getFirestore, doc, getDoc, setDoc, addDoc, collection,
          query, where, orderBy, limit, getDocs, onSnapshot, updateDoc, increment, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+
+/* ══════════════════════════════════
+   FUEL PRICES ON HOME SCREEN
+══════════════════════════════════ */
+async function loadHomePrices() {
+  try {
+    const snap = await getDoc(doc(db,"fuel_prices","current"));
+    if (!snap.exists()) return;
+    const { petrol, diesel } = snap.data();
+    const fmt = n => n.toLocaleString("en-UG");
+    if (petrol) document.getElementById("homePetrolPrice").textContent = `UGX ${fmt(petrol)}/L`;
+    if (diesel) document.getElementById("homeDieselPrice").textContent = `UGX ${fmt(diesel)}/L`;
+  } catch(e) {
+    document.getElementById("homePetrolPrice").textContent = "—";
+    document.getElementById("homeDieselPrice").textContent = "—";
+  }
+}
+
+/* ══════════════════════════════════
+   LOW BALANCE ALERT
+══════════════════════════════════ */
+function _showLowBalanceAlert(balance, threshold) {
+  const fmt = n => n.toLocaleString("en-UG");
+  /* Show in-app banner */
+  const existing = document.getElementById("lowBalanceBanner");
+  if (existing) existing.remove();
+
+  const banner = document.createElement("div");
+  banner.id = "lowBalanceBanner";
+  banner.style.cssText = `position:fixed;top:0;left:0;right:0;z-index:8000;
+    background:linear-gradient(90deg,#b45309,#92400e);
+    padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;
+    gap:1rem;animation:slideDown .4s ease;`;
+  banner.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.75rem;">
+      <span style="font-size:1.3rem;">⚠️</span>
+      <div>
+        <div style="font-family:var(--font-h);font-size:.85rem;font-weight:700;color:#fff;">Low Balance Alert</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.8);">Your balance is UGX ${fmt(balance)} — top up to keep fuelling</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-shrink:0;">
+      <button onclick="showTab('topupTab');setNav('topup');document.getElementById('lowBalanceBanner').remove();"
+        style="background:#fff;color:#92400e;border:none;border-radius:4px;padding:.4rem .85rem;
+        font-family:var(--font-h);font-size:.75rem;font-weight:700;letter-spacing:.06em;
+        text-transform:uppercase;cursor:pointer;white-space:nowrap;">Top Up Now</button>
+      <button onclick="this.closest('#lowBalanceBanner').remove()"
+        style="background:transparent;border:1px solid rgba(255,255,255,.4);color:rgba(255,255,255,.7);
+        border-radius:4px;padding:.4rem .65rem;font-size:.8rem;cursor:pointer;">✕</button>
+    </div>`;
+  document.body.prepend(banner);
+
+  /* Also try push notification if permission granted */
+  if (Notification.permission === "granted") {
+    new Notification("NERO Wallet — Low Balance", {
+      body: `Your balance is UGX ${fmt(balance)}. Top up now to avoid being stuck at the pump.`,
+      icon: "./icon-192.png",
+      tag: "low-balance"
+    });
+  }
+}
+
+/* ══════════════════════════════════
+   REFERRAL CODE
+══════════════════════════════════ */
+function generateReferralCode(customer) {
+  /* Generate a memorable 6-char code from their name + account */
+  const name = (customer.name || "").toUpperCase().replace(/[^A-Z]/g,"").slice(0,3).padEnd(3,"X");
+  const num  = (customer.accountNumber || "").replace(/[^0-9]/g,"").slice(-3).padStart(3,"0");
+  return `${name}${num}`;
+}
+
+window.copyReferralCode = () => {
+  if (!_customer) return;
+  const code = generateReferralCode(_customer);
+  const msg  = `Join NERO Fuel Wallet and get UGX 5,000 free! Sign up at nero-wallet.web.app and use my referral code: ${code}`;
+  if (navigator.share) {
+    navigator.share({ title: "NERO Wallet Referral", text: msg }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(msg).then(() => _showToast("Referral link copied ✓"))
+      .catch(() => _showToast(`Your code: ${code}`));
+  }
+};
+
+/* ══════════════════════════════════
+   PIN CONFIRMATION BEFORE TOP-UP
+══════════════════════════════════ */
+let _pcPin       = "";
+let _pcOnConfirm = null;
+
+window._pcKey = (digit) => {
+  if (_pcPin.length >= 4) return;
+  _pcPin += digit;
+  _updatePcDots();
+  if (_pcPin.length === 4) {
+    setTimeout(() => _verifyPin(), 150);
+  }
+};
+
+window._pcDel = () => {
+  _pcPin = _pcPin.slice(0, -1);
+  document.getElementById("pinConfirmError").style.display = "none";
+  _updatePcDots();
+};
+
+function _updatePcDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`pcd${i}`);
+    if (dot) dot.classList.toggle("filled", i < _pcPin.length);
+  }
+}
+
+async function _verifyPin() {
+  if (!_customer || !_pcPin) return;
+  try {
+    const pinHash = await _hashPin(_pcPin);
+    if (pinHash === _customer.pinHash) {
+      closeModal("pinConfirmModal");
+      _pcReset();
+      if (_pcOnConfirm) _pcOnConfirm();
+    } else {
+      document.getElementById("pinConfirmError").style.display = "block";
+      _pcPin = "";
+      _updatePcDots();
+      /* Shake animation */
+      const dots = document.getElementById("pinConfirmDots");
+      dots.style.animation = "none";
+      dots.offsetHeight;
+      dots.style.animation = "shake .4s ease";
+    }
+  } catch(e) {
+    _pcReset();
+    if (_pcOnConfirm) _pcOnConfirm(); /* fallback — proceed if hash check fails */
+  }
+}
+
+window._pcReset = () => {
+  _pcPin = "";
+  _updatePcDots();
+  document.getElementById("pinConfirmError").style.display = "none";
+};
+
+async function _hashPin(pin) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin + "nero_salt_2026"));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+function requirePinThen(description, onConfirm) {
+  document.getElementById("pinConfirmDesc").textContent = description;
+  _pcReset();
+  _pcOnConfirm = onConfirm;
+  openModal("pinConfirmModal");
+}
+
 
 /* ── Firebase init ── */
 const app  = initializeApp({
@@ -811,8 +1046,21 @@ function populateApp() {
   document.getElementById("profileAvatar").textContent    = initials;
   document.querySelector(".avatar")                       && (document.querySelector(".avatar").textContent = initials);
 
-  document.getElementById("qrName").textContent   = _customer.name;
-  document.getElementById("qrNumber").textContent = _customer.accountNumber;
+  document.getElementById("qrName").textContent    = _customer.name;
+  document.getElementById("qrNumber").textContent  = _customer.accountNumber;
+
+  /* Referral code */
+  const refCode = generateReferralCode(_customer);
+  const refEl   = document.getElementById("referralCode");
+  if (refEl) refEl.textContent = refCode;
+
+  /* Load live fuel prices */
+  loadHomePrices();
+
+  /* Request notification permission for low balance alerts */
+  if (Notification.permission === "default") {
+    setTimeout(() => Notification.requestPermission(), 5000);
+  }
 }
 
 /* Live balance subscription */
@@ -825,6 +1073,16 @@ function subscribeBalance() {
     const fmt  = n => n.toLocaleString("en-UG");
     document.getElementById("balanceAmount").textContent = fmt(data.balance || 0);
     document.getElementById("topbarBalance").textContent = `UGX ${fmt(data.balance || 0)}`;
+
+    /* Low balance notification — alert when balance drops below UGX 20,000 */
+    const LOW_BALANCE_THRESHOLD = 20000;
+    const bal = data.balance || 0;
+    const lastAlerted = _customer._lastLowBalanceAlert || 0;
+    const hoursSinceAlert = (Date.now() - lastAlerted) / (1000 * 60 * 60);
+    if (bal > 0 && bal < LOW_BALANCE_THRESHOLD && hoursSinceAlert > 6) {
+      _customer._lastLowBalanceAlert = Date.now();
+      _showLowBalanceAlert(bal, LOW_BALANCE_THRESHOLD);
+    }
   });
 }
 
@@ -834,11 +1092,14 @@ function subscribeBalance() {
 async function loadRecentTx() {
   const el = document.getElementById("recentTxList");
   try {
-    const q    = query(collection(db,"transactions"),
-                  where("customerId","==",_customer.uid),
-                  orderBy("timestamp","desc"), limit(5));
-    const snap = await getDocs(q);
-    renderTxList(snap, el, 5);
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db,"transactions"), orderBy("timestamp","desc"), limit(200)));
+    } catch(e2) {
+      snap = await getDocs(collection(db,"transactions"));
+    }
+    const filtered = { docs: snap.docs.filter(d => d.data().customerId === _customer.uid).slice(0,5) };
+    renderTxList(filtered, el, 5);
   } catch(e) { el.innerHTML=`<div class="tx-empty">No transactions yet.</div>`; }
 }
 
@@ -846,18 +1107,29 @@ window.loadFullHistory = async () => {
   const el = document.getElementById("fullTxList");
   el.innerHTML = `<div class="loading"><div class="spinner"></div> Loading…</div>`;
   try {
-    const q    = query(collection(db,"transactions"),
-                  where("customerId","==",_customer.uid),
-                  orderBy("timestamp","desc"), limit(50));
-    const snap = await getDocs(q);
-    renderTxList(snap, el, 50);
-  } catch(e) { el.innerHTML=`<div class="tx-empty">Could not load history.</div>`; }
+    /* Simple query — no composite index needed. Filter by customerId client-side. */
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db,"transactions"), orderBy("timestamp","desc"), limit(300)));
+    } catch(e2) {
+      snap = await getDocs(collection(db,"transactions"));
+    }
+    /* Filter to only this customer's transactions */
+    const filtered = { docs: snap.docs.filter(d => d.data().customerId === _customer.uid) };
+    renderTxList(filtered, el, 50);
+  } catch(e) {
+    el.innerHTML = `<div class="tx-empty" style="color:#ef4444;">Error loading history: ${e.message}</div>`;
+    console.error("History:", e);
+  }
 };
 
 function renderTxList(snap, el, maxItems) {
   el.innerHTML = "";
-  if (snap.empty) { el.innerHTML=`<div class="tx-empty">No transactions yet. Top up to get started!</div>`; return; }
-  snap.forEach(d => {
+  /* Support both Firestore snapshots and plain {docs:[]} objects */
+  const docs = snap.docs || [];
+  const isEmpty = snap.empty !== undefined ? snap.empty : docs.length === 0;
+  if (isEmpty) { el.innerHTML=`<div class="tx-empty">No transactions yet. Top up to get started!</div>`; return; }
+  docs.forEach(d => {
     const tx   = d.data();
     const type = tx.type || "deduct";
     const date = tx.timestamp?.toDate?.() || new Date();
@@ -960,6 +1232,14 @@ window.initiateTopup = async () => {
     if (!momoNum) { showAuthError(errEl,"Please enter your mobile money number."); return; }
   }
 
+  /* ── PIN CONFIRMATION before proceeding ── */
+  requirePinThen(
+    `Confirm top-up of UGX ${amount.toLocaleString("en-UG")} via ${_selectedMethod?.toUpperCase()}`,
+    () => _doTopup(amount)
+  );
+};
+
+async function _doTopup(amount) {
   /* Show processing modal */
   openModal("topupModal");
   document.getElementById("topupModalTitle").textContent = "Processing Payment";
@@ -1026,7 +1306,7 @@ window.initiateTopup = async () => {
     document.getElementById("topupModalTitle").textContent = "Payment Failed";
     document.getElementById("topupModalMsg").textContent = "Something went wrong. Please try again.";
   }
-};
+}
 
 /* ══════════════════════════════════
    CHANGE PIN

@@ -375,6 +375,18 @@ tbody tr:hover td{background:rgba(255,255,255,.02);}
           <canvas id="methodChart" height="140"></canvas>
         </div>
       </div>
+      <!-- Customer growth chart -->
+      <div class="chart-card" style="margin-bottom:1rem;">
+        <div class="chart-head">
+          <div class="chart-title">Customer Growth (New Signups)</div>
+          <div class="chart-period">
+            <button class="period-btn active" onclick="loadGrowthChart('4w',this)">4W</button>
+            <button class="period-btn" onclick="loadGrowthChart('12w',this)">12W</button>
+          </div>
+        </div>
+        <canvas id="growthChart" height="70"></canvas>
+      </div>
+
       <div class="form-panel">
         <h3>📥 Download Reports</h3>
         <div class="form-grid">
@@ -569,6 +581,24 @@ tbody tr:hover td{background:rgba(255,255,255,.02);}
           <tbody id="att-body"><tr class="loading-row"><td colspan="6">Loading…</td></tr></tbody>
         </table>
       </div>
+
+      <!-- Attendant Performance Table -->
+      <div class="table-wrap" style="margin-top:1.25rem;">
+        <div class="table-head">
+          <div class="table-title">📊 Attendant Performance — Today</div>
+          <div style="font-size:.78rem;color:var(--muted);">⚠️ Flag = single deduction over UGX 500,000</div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Attendant ID</th><th>Name</th><th>Station</th>
+            <th>Transactions</th><th>Total Amount</th>
+            <th>Largest Single</th><th>Flag</th>
+          </tr></thead>
+          <tbody id="att-perf-body">
+            <tr class="loading-row"><td colspan="7">Click "Load Activity" above to load performance data</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ════════════ WITHDRAW ════════════ -->
@@ -664,6 +694,38 @@ tbody tr:hover td{background:rgba(255,255,255,.02);}
         <div class="err" id="settingsErr"></div>
         <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
       </div>
+      <div class="form-panel" style="max-width:520px;margin-top:1rem;">
+        <h3>📧 Daily Report Settings</h3>
+        <div class="info-box">
+          When set up with a backend (Cloud Functions), a daily summary will be emailed to you
+          every morning at 7am: yesterday's sales, top-ups, and each station's performance.
+        </div>
+        <div class="field"><label>Report Email Address</label>
+          <input type="email" id="reportEmail" placeholder="manager@nero.com">
+        </div>
+        <div class="field"><label>Report Time</label>
+          <select id="reportTime">
+            <option value="07:00">7:00 AM</option>
+            <option value="08:00">8:00 AM</option>
+            <option value="06:00">6:00 AM</option>
+          </select>
+        </div>
+        <div class="err" id="reportEmailErr"></div>
+        <button class="btn-primary" onclick="saveReportSettings()">Save Report Settings</button>
+      </div>
+
+      <!-- Manual Daily Report -->
+      <div class="form-panel" style="max-width:520px;margin-top:1rem;">
+        <h3>📊 Generate Daily Report Now</h3>
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.25rem;">
+          Generate and download a report for any date without waiting for the scheduled email.
+        </p>
+        <div class="field"><label>Report Date</label>
+          <input type="date" id="dailyReportDate">
+        </div>
+        <button class="btn-primary" onclick="generateDailyReport()">📥 Download Day Report</button>
+      </div>
+
       <div class="form-panel" style="max-width:520px;margin-top:1rem;">
         <h3>🔑 Change Password</h3>
         <div class="field"><label>Current Password</label><input type="password" id="oldPassword" placeholder="••••••••"></div>
@@ -765,7 +827,9 @@ tbody tr:hover td{background:rgba(255,255,255,.02);}
     'addAttendant','toggleAttendant','loadAttendantActivity',
     'openCustomerDetail','viewCustomerTx','toggleSuspend',
     'toggleSuspendById','openQuickTopup','quickTopupCustomer',
-    'confirmQuickTopup','showReceipt','prefillRefund','copyId'
+    'confirmQuickTopup','showReceipt','prefillRefund','copyId',
+    'generateDailyReport','saveReportSettings','loadGrowthChart',
+    'loadAttendantPerformance','showShiftSummary'
   ];
 
   EXPOSED.forEach(name => {
@@ -907,7 +971,7 @@ const PANEL_LOADERS = {
   transactions:loadTransactions,customers:loadCustomers,
   attendants:loadAttendants,topups:loadTopups,
   refunds:loadRefunds,withdraw:loadWithdrawals,
-  audit:loadAudit,reports:()=>{loadCharts("7d");},debug:loadDebugPanel
+  audit:loadAudit,reports:()=>{loadCharts("7d");loadGrowthChart("4w",null);},debug:loadDebugPanel
 };
 
 window.showPanel = (name) => {
@@ -1845,7 +1909,7 @@ window.downloadReport = async () => {
       });
     }
 
-    const csv=[headers,...rows].map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
+    const csv=[headers,...rows].map(r=>r.map(v=>'"'+String(v)+'"').join(",")).join("\n");
     const a=document.createElement("a");
     a.download=`NERO-${type}-${new Date().toISOString().slice(0,10)}.csv`;
     a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
@@ -1853,6 +1917,246 @@ window.downloadReport = async () => {
     _showToast(`${rows.length} records exported ✓`);
   }catch(e){_showToast("Export failed: "+e.message,"error");}
 };
+
+
+/* ══════════════════════════════════
+   CUSTOMER GROWTH CHART
+══════════════════════════════════ */
+let _growthChart = null;
+
+window.loadGrowthChart = async (period, btn) => {
+  if (btn) {
+    document.querySelectorAll(".period-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+  try {
+    const weeks = period === "4w" ? 4 : 12;
+    const now   = new Date();
+    const labels = [];
+    const data   = [];
+
+    /* Build week buckets */
+    for (let i = weeks - 1; i >= 0; i--) {
+      const weekStart = new Date(now);
+      weekStart.setDate(weekStart.getDate() - (i * 7) - 6);
+      weekStart.setHours(0,0,0,0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      labels.push(`W${weeks - i}`);
+      data.push({ start: weekStart, end: weekEnd, count: 0 });
+    }
+
+    const custSnap = await getDocs(collection(db, "customers"));
+    custSnap.forEach(d => {
+      const ts = d.data().createdAt?.toDate?.();
+      if (!ts) return;
+      data.forEach(bucket => {
+        if (ts >= bucket.start && ts <= bucket.end) bucket.count++;
+      });
+    });
+
+    const cOpts = {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "rgba(255,255,255,.4)", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } },
+        y: { ticks: { color: "rgba(255,255,255,.4)", font: { size: 10 }, stepSize: 1 }, grid: { color: "rgba(255,255,255,.06)" } }
+      }
+    };
+
+    if (_growthChart) _growthChart.destroy();
+    _growthChart = new Chart(document.getElementById("growthChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "New Customers",
+          data: data.map(b => b.count),
+          backgroundColor: "rgba(139,92,246,.7)",
+          borderRadius: 4
+        }]
+      },
+      options: cOpts
+    });
+  } catch(e) { console.error("Growth chart:", e); }
+};
+
+/* ══════════════════════════════════
+   ATTENDANT PERFORMANCE TABLE
+══════════════════════════════════ */
+async function loadAttendantPerformance() {
+  const tbody = document.getElementById("att-perf-body");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr class="loading-row"><td colspan="7">Loading performance data…</td></tr>`;
+
+  try {
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    /* Get all attendants */
+    const attSnap = await getDocs(collection(db, "attendants"));
+    const attendants = {};
+    attSnap.forEach(d => {
+      attendants[d.id] = {
+        ...d.data(), uid: d.id,
+        txCount: 0, totalAmount: 0, largestSingle: 0
+      };
+    });
+
+    /* Get today's deductions */
+    let txSnap;
+    try {
+      txSnap = await getDocs(query(collection(db,"transactions"), orderBy("timestamp","desc"), limit(300)));
+    } catch(e2) {
+      txSnap = await getDocs(collection(db,"transactions"));
+    }
+
+    txSnap.forEach(d => {
+      const tx = d.data();
+      const ts = tx.timestamp?.toDate?.();
+      if (tx.type !== "deduct" || !ts || ts < today) return;
+      const att = attendants[tx.attendantId];
+      if (!att) return;
+      att.txCount++;
+      att.totalAmount += tx.amount || 0;
+      if ((tx.amount || 0) > att.largestSingle) att.largestSingle = tx.amount;
+    });
+
+    tbody.innerHTML = "";
+    const THRESHOLD = 500000; /* Flag single deductions over UGX 500,000 */
+
+    Object.values(attendants)
+      .filter(a => a.status === "active")
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+      .forEach(a => {
+        const flagged = a.largestSingle > THRESHOLD;
+        tbody.innerHTML += `<tr style="${flagged ? "background:rgba(245,158,11,.04);" : ""}">
+          <td style="font-family:var(--font-h);letter-spacing:.1em;color:var(--red);">${a.attendantId||"—"}</td>
+          <td>${a.name||"—"}</td>
+          <td>${a.stationName||a.stationId||"—"}</td>
+          <td style="font-family:var(--font-h);font-size:1rem;font-weight:700;">${a.txCount}</td>
+          <td class="amount-cell ${a.totalAmount>0?"neg":""}">UGX ${fmt(a.totalAmount)}</td>
+          <td class="amount-cell ${flagged?"":""}">UGX ${fmt(a.largestSingle)}</td>
+          <td>${flagged
+            ? `<span class="badge pending" title="Single deduction over UGX ${fmt(THRESHOLD)}">⚠️ Review</span>`
+            : `<span class="badge active">✓ Normal</span>`}
+          </td>
+        </tr>`;
+      });
+
+    if (Object.values(attendants).filter(a=>a.status==="active").length === 0) {
+      tbody.innerHTML = `<tr class="loading-row"><td colspan="7">No active attendants yet.</td></tr>`;
+    }
+
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr class="loading-row"><td colspan="7" style="color:#ef4444;">Error: ${e.message}</td></tr>`;
+  }
+}
+
+/* ══════════════════════════════════
+   DAILY REPORT GENERATOR
+══════════════════════════════════ */
+window.generateDailyReport = async () => {
+  const dateVal = document.getElementById("dailyReportDate")?.value;
+  if (!dateVal) { _showToast("Please select a date", "error"); return; }
+
+  const reportDate = new Date(dateVal);
+  const dayStart   = new Date(reportDate); dayStart.setHours(0,0,0,0);
+  const dayEnd     = new Date(reportDate); dayEnd.setHours(23,59,59,999);
+
+  try {
+    let txSnap;
+    try { txSnap = await getDocs(query(collection(db,"transactions"),orderBy("timestamp","desc"),limit(1000))); }
+    catch(e2) { txSnap = await getDocs(collection(db,"transactions")); }
+
+    const dayTx = [];
+    txSnap.forEach(d => {
+      const tx = d.data();
+      const ts = tx.timestamp?.toDate?.();
+      if (ts && ts >= dayStart && ts <= dayEnd) dayTx.push({ id: d.id, ...tx });
+    });
+
+    let totalSales=0, totalTopups=0, petrolSales=0, dieselSales=0;
+    const stationSales = {};
+    const attendantSales = {};
+
+    dayTx.forEach(tx => {
+      if (tx.type === "deduct") {
+        totalSales += tx.amount || 0;
+        if (tx.fuelType === "petrol") petrolSales += tx.amount || 0;
+        if (tx.fuelType === "diesel") dieselSales += tx.amount || 0;
+        const stn = tx.stationName || tx.stationId || "Unknown";
+        stationSales[stn] = (stationSales[stn] || 0) + (tx.amount || 0);
+        const att = tx.attendantName || "Unknown";
+        if (!attendantSales[att]) attendantSales[att] = { count: 0, total: 0 };
+        attendantSales[att].count++;
+        attendantSales[att].total += tx.amount || 0;
+      }
+      if (tx.type === "topup" || tx.type === "cash_topup") {
+        totalTopups += tx.amount || 0;
+      }
+    });
+
+    const rows = [
+      ["NERO PETRO STATION — DAILY REPORT"],
+      [`Date: ${reportDate.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}`],
+      [`Generated: ${new Date().toLocaleString("en-GB")}`],
+      [""],
+      ["SUMMARY"],
+      ["Metric", "Value"],
+      ["Total Fuel Sales", `UGX ${fmt(totalSales)}`],
+      ["Total Top-Ups", `UGX ${fmt(totalTopups)}`],
+      ["Total Transactions", dayTx.length],
+      ["Petrol Sales", `UGX ${fmt(petrolSales)}`],
+      ["Diesel Sales", `UGX ${fmt(dieselSales)}`],
+      [""],
+      ["BY STATION"],
+      ["Station", "Sales"],
+      ...Object.entries(stationSales).map(([s,v]) => [s, `UGX ${fmt(v)}`]),
+      [""],
+      ["BY ATTENDANT"],
+      ["Attendant", "Transactions", "Total"],
+      ...Object.entries(attendantSales).map(([a,v]) => [a, v.count, `UGX ${fmt(v.total)}`]),
+      [""],
+      ["ALL TRANSACTIONS"],
+      ["Reference","Time","Account","Type","Fuel","Amount","Station","Attendant"],
+      ...dayTx.map(tx => [
+        tx.reference||tx.id?.slice(0,10)||"",
+        tx.timestamp?.toDate?.()?.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})||"",
+        tx.accountNumber||"",
+        tx.type||"",
+        tx.fuelType||"",
+        `UGX ${fmt(tx.amount||0)}`,
+        tx.stationName||"",
+        tx.attendantName||""
+      ])
+    ];
+
+    const csv = rows.map(r => Array.isArray(r) ? r.map(v=>'"'+v+'"').join(",") : '"'+r+'"').join("\n");
+    const a   = document.createElement("a");
+    a.download = "NERO-Daily-Report-" + dateVal + ".csv";
+    a.href     = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.click();
+    _showToast("Daily report downloaded: " + dateVal);
+  } catch(e) {
+    _showToast("Report failed: " + e.message, "error");
+  }
+};
+
+window.saveReportSettings = async () => {
+  const email = document.getElementById("reportEmail")?.value.trim();
+  const time  = document.getElementById("reportTime")?.value;
+  const errEl = document.getElementById("reportEmailErr");
+  if (errEl) errEl.style.display = "none";
+  if (!email) { if(errEl){errEl.textContent="Please enter an email.";errEl.style.display="block";} return; }
+  try {
+    await setDoc(doc(db,"settings","reports"),{
+      email, reportTime: time,
+      updatedBy: _manager?.uid, updatedAt: serverTimestamp()
+    },{merge:true});
+    _showToast("Report settings saved ✓");
+  } catch(e) { _showToast("Error: "+e.message,"error"); }
+};
+
 
 /* ══════════════════════════════════
    HELPERS
@@ -1943,6 +2247,11 @@ if(window.confirmQuickTopup) window._registerFn("confirmQuickTopup", window.conf
 if(window.showReceipt) window._registerFn("showReceipt", window.showReceipt);
 if(window.prefillRefund) window._registerFn("prefillRefund", window.prefillRefund);
 if(window.copyId) window._registerFn("copyId", window.copyId);
+if(window.generateDailyReport) window._registerFn("generateDailyReport", window.generateDailyReport);
+if(window.saveReportSettings) window._registerFn("saveReportSettings", window.saveReportSettings);
+if(window.loadGrowthChart) window._registerFn("loadGrowthChart", window.loadGrowthChart);
+if(window.loadAttendantPerformance) window._registerFn("loadAttendantPerformance", window.loadAttendantPerformance);
+
 </script>
 </body>
 </html>
