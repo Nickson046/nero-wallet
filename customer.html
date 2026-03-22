@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NERO Wallet">
+<meta name="theme-color" content="#e8000d">
+<title>NERO Fuel Wallet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+
+<!-- QR Code library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+:root {
+  --red:      #e8000d;
+  --red-dark: #b0000a;
+  --black:    #0a0a0a;
+  --dark:     #111111;
+  --dark2:    #1a1a1a;
+  --dark3:    #222222;
+  --muted:    #888888;
+  --white:    #ffffff;
+  --green:    #22c55e;
+  --amber:    #f59e0b;
+  --font-h:   'Barlow Condensed', sans-serif;
+  --font-b:   'Barlow', sans-serif;
+  --r:        10px;
+}
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { font-family:var(--font-b); background:var(--black); color:var(--white); min-height:100vh; overflow-x:hidden; }
+a { text-decoration:none; color:inherit; }
+button { cursor:pointer; font-family:var(--font-b); }
+
+/* ══ SCREENS ══ */
+.screen { display:none; min-height:100vh; flex-direction:column; }
+.screen.active { display:flex; }
+
+/* ══ SPLASH ══ */
+#splash {
+  background:var(--black); align-items:center; justify-content:center;
+  gap:1.5rem; text-align:center;
+}
+.splash-logo { font-family:var(--font-h); font-size:3rem; font-weight:900; letter-spacing:.1em; }
+.splash-logo span { color:var(--red); }
+.splash-sub { font-family:var(--font-h); font-size:.8rem; letter-spacing:.25em; text-transform:uppercase; color:var(--muted); }
+.splash-bar-wrap { width:120px; height:3px; background:rgba(255,255,255,.08); border-radius:3px; overflow:hidden; margin-top:.5rem; }
+.splash-bar { height:100%; width:0; background:var(--red); border-radius:3px; animation:splashLoad 1.8s ease forwards; }
+@keyframes splashLoad { 0%{width:0} 60%{width:70%} 100%{width:100%} }
+
+/* ══ AUTH SCREEN ══ */
+#auth { background:var(--black); align-items:center; justify-content:center; padding:2rem; }
+.auth-box {
+  width:100%; max-width:400px;
+  background:var(--dark); border:1px solid rgba(255,255,255,.07);
+  border-top:3px solid var(--red); border-radius:var(--r);
+  padding:2.5rem 2rem; display:flex; flex-direction:column; gap:1.25rem;
+}
+.auth-logo { font-family:var(--font-h); font-size:1.8rem; font-weight:900; color:var(--white); text-align:center; }
+.auth-logo span { color:var(--red); }
+.auth-title { font-family:var(--font-h); font-size:1rem; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); text-align:center; margin-top:-.5rem; }
+.auth-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,.08); gap:0; }
+.auth-tab {
+  flex:1; padding:.75rem; text-align:center; font-family:var(--font-h); font-size:.85rem;
+  font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+  background:transparent; border:none; border-bottom:2px solid transparent;
+  transition:all .25s; cursor:pointer;
+}
+.auth-tab.active { color:var(--white); border-bottom-color:var(--red); }
+.auth-form { display:flex; flex-direction:column; gap:1rem; }
+.auth-form.hidden { display:none; }
+.field { display:flex; flex-direction:column; gap:.4rem; }
+.field label { font-family:var(--font-h); font-size:.72rem; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); }
+.field input {
+  background:var(--dark2); border:1px solid rgba(255,255,255,.1); border-radius:6px;
+  color:var(--white); padding:.85rem 1rem; font-family:var(--font-b); font-size:1rem;
+  width:100%; transition:border-color .25s;
+}
+.field input:focus { outline:none; border-color:var(--red); }
+.pin-row { display:flex; gap:.75rem; }
+.pin-input {
+  flex:1; text-align:center; font-size:1.5rem; letter-spacing:.3em;
+  background:var(--dark2); border:1px solid rgba(255,255,255,.1); border-radius:6px;
+  color:var(--white); padding:.85rem .5rem; font-family:var(--font-b);
+  transition:border-color .25s;
+}
+.pin-input:focus { outline:none; border-color:var(--red); }
+.btn-primary {
+  background:var(--red); color:#fff; border:none; border-radius:6px;
+  padding:.9rem; font-family:var(--font-h); font-size:1rem; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; transition:background .25s,transform .2s;
+  width:100%;
+}
+.btn-primary:hover { background:var(--red-dark); transform:translateY(-1px); }
+.btn-primary:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+.btn-ghost {
+  background:transparent; color:rgba(255,255,255,.4); border:1px solid rgba(255,255,255,.12);
+  border-radius:6px; padding:.75rem; font-family:var(--font-h); font-size:.85rem;
+  font-weight:700; letter-spacing:.1em; text-transform:uppercase; width:100%;
+  transition:all .25s;
+}
+.btn-ghost:hover { border-color:rgba(255,255,255,.3); color:rgba(255,255,255,.7); }
+.auth-error {
+  background:rgba(255,50,50,.08); border:1px solid rgba(255,50,50,.25); border-radius:6px;
+  padding:.65rem 1rem; font-size:.85rem; color:#ff5555; text-align:center; display:none;
+}
+.auth-note { font-size:.75rem; color:rgba(255,255,255,.2); text-align:center; }
+
+/* ══ MAIN APP ══ */
+#app { background:var(--black); }
+
+/* Top bar */
+.topbar {
+  background:var(--dark); border-bottom:1px solid rgba(255,255,255,.06);
+  padding:1rem 1.5rem; display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+}
+.topbar-logo { font-family:var(--font-h); font-size:1.3rem; font-weight:900; letter-spacing:.08em; }
+.topbar-logo span { color:var(--red); }
+.topbar-right { display:flex; align-items:center; gap:.75rem; }
+.avatar {
+  width:36px; height:36px; border-radius:50%; background:var(--red);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-h); font-size:1rem; font-weight:900; color:#fff; cursor:pointer;
+}
+
+/* Tab navigation */
+.tab-nav {
+  display:flex; background:var(--dark); border-top:1px solid rgba(255,255,255,.06);
+  position:fixed; bottom:0; left:0; right:0; z-index:100;
+  box-shadow:0 -4px 20px rgba(0,0,0,.4);
+}
+.tab-btn {
+  flex:1; padding:.9rem .5rem .7rem; display:flex; flex-direction:column;
+  align-items:center; gap:.25rem; background:transparent; border:none;
+  font-family:var(--font-h); font-size:.62rem; letter-spacing:.08em; text-transform:uppercase;
+  color:rgba(255,255,255,.35); transition:color .25s;
+}
+.tab-btn.active { color:var(--red); }
+.tab-btn .tab-icon { font-size:1.4rem; line-height:1; }
+
+/* Content area */
+.content { flex:1; padding:1.5rem; padding-bottom:80px; max-width:480px; margin:0 auto; width:100%; }
+
+/* ══ HOME TAB ══ */
+.balance-card {
+  background:linear-gradient(135deg,#1a0000 0%,#3a0505 50%,#1a1a1a 100%);
+  border:1px solid rgba(232,0,13,.35); border-radius:16px;
+  padding:2rem; margin-bottom:1.5rem; position:relative; overflow:hidden;
+}
+.balance-card::before {
+  content:''; position:absolute; top:-40%; right:-20%; width:250px; height:250px;
+  background:radial-gradient(circle,rgba(232,0,13,.15) 0%,transparent 70%); border-radius:50%;
+}
+.balance-card-label {
+  font-family:var(--font-h); font-size:.72rem; letter-spacing:.2em;
+  text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:.5rem;
+}
+.balance-amount {
+  font-family:var(--font-h); font-size:2.8rem; font-weight:900; color:var(--white);
+  line-height:1; margin-bottom:.25rem;
+}
+.balance-amount .currency { font-size:1.2rem; color:var(--red); margin-right:.3rem; }
+.balance-card-name { font-size:.9rem; color:rgba(255,255,255,.5); margin-top:.75rem; }
+.balance-card-number {
+  font-family:var(--font-h); font-size:.8rem; letter-spacing:.2em;
+  color:rgba(255,255,255,.3); margin-top:.25rem;
+}
+
+/* Quick actions */
+.quick-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; margin-bottom:1.5rem; }
+.quick-btn {
+  background:var(--dark); border:1px solid rgba(255,255,255,.07); border-radius:var(--r);
+  padding:1.1rem .75rem; display:flex; flex-direction:column; align-items:center; gap:.5rem;
+  font-family:var(--font-h); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+  color:rgba(255,255,255,.55); transition:all .25s; cursor:pointer;
+}
+.quick-btn:hover { border-color:rgba(232,0,13,.35); color:var(--white); background:var(--dark2); }
+.quick-btn .qi { font-size:1.6rem; }
+
+/* Section heading */
+.sec-head {
+  font-family:var(--font-h); font-size:.75rem; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:.75rem; display:flex; align-items:center; justify-content:space-between;
+}
+.sec-head a { color:var(--red); font-size:.7rem; cursor:pointer; }
+
+/* Transaction list */
+.tx-list { display:flex; flex-direction:column; gap:.65rem; }
+.tx-item {
+  background:var(--dark); border:1px solid rgba(255,255,255,.06); border-radius:8px;
+  padding:1rem 1.1rem; display:flex; align-items:center; gap:1rem;
+}
+.tx-icon {
+  width:40px; height:40px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+}
+.tx-icon.topup  { background:rgba(34,197,94,.12); }
+.tx-icon.deduct { background:rgba(232,0,13,.12); }
+.tx-icon.refund { background:rgba(245,158,11,.12); }
+.tx-body { flex:1; min-width:0; }
+.tx-title { font-size:.9rem; color:var(--white); margin-bottom:.15rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tx-meta  { font-size:.75rem; color:var(--muted); }
+.tx-amount { font-family:var(--font-h); font-size:1rem; font-weight:700; white-space:nowrap; }
+.tx-amount.topup  { color:var(--green); }
+.tx-amount.deduct { color:var(--red); }
+.tx-amount.refund { color:var(--amber); }
+.tx-empty { text-align:center; padding:2rem; color:var(--muted); font-size:.9rem; }
+
+/* ══ QR TAB ══ */
+.qr-wrap {
+  background:var(--dark); border:1px solid rgba(255,255,255,.07); border-radius:var(--r);
+  padding:2rem; display:flex; flex-direction:column; align-items:center; gap:1.5rem;
+  margin-bottom:1.25rem;
+}
+.qr-box {
+  background:#fff; padding:16px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+}
+.qr-label { font-family:var(--font-h); font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); text-align:center; }
+.qr-name  { font-family:var(--font-h); font-size:1.3rem; font-weight:700; color:var(--white); text-align:center; }
+.qr-number {
+  font-family:var(--font-h); font-size:1.2rem; letter-spacing:.25em; color:var(--red);
+  background:rgba(232,0,13,.08); border:1px solid rgba(232,0,13,.2);
+  border-radius:6px; padding:.5rem 1rem; text-align:center; width:100%;
+}
+.qr-tip {
+  font-size:.82rem; color:var(--muted); text-align:center; line-height:1.6;
+  background:var(--dark2); border-radius:6px; padding:1rem;
+}
+
+/* ══ TOPUP TAB ══ */
+.topup-amount-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.65rem; margin-bottom:1rem; }
+.amount-btn {
+  background:var(--dark2); border:1px solid rgba(255,255,255,.08); border-radius:6px;
+  padding:.85rem .5rem; font-family:var(--font-h); font-size:.9rem; font-weight:700;
+  color:rgba(255,255,255,.6); transition:all .25s; cursor:pointer;
+}
+.amount-btn:hover, .amount-btn.selected { background:rgba(232,0,13,.1); border-color:var(--red); color:var(--white); }
+.method-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-bottom:1.25rem; }
+.method-btn {
+  background:var(--dark); border:2px solid rgba(255,255,255,.08); border-radius:8px;
+  padding:1rem .75rem; display:flex; flex-direction:column; align-items:center; gap:.5rem;
+  font-family:var(--font-h); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase;
+  color:rgba(255,255,255,.5); cursor:pointer; transition:all .25s;
+}
+.method-btn:hover, .method-btn.selected { border-color:var(--red); color:var(--white); background:rgba(232,0,13,.06); }
+.method-btn .mi { font-size:1.8rem; }
+.method-btn.mtn.selected    { border-color:#ffc107; color:#ffc107; background:rgba(255,193,7,.06); }
+.method-btn.airtel.selected { border-color:#ff4444; }
+.method-btn.card.selected   { border-color:#4f46e5; color:#818cf8; background:rgba(79,70,229,.06); }
+.method-btn.paypal.selected { border-color:#0070ba; color:#60a5fa; background:rgba(0,112,186,.06); }
+.method-btn.cash.selected   { border-color:var(--green); color:var(--green); background:rgba(34,197,94,.06); }
+
+/* ══ PROFILE TAB ══ */
+.profile-card {
+  background:var(--dark); border:1px solid rgba(255,255,255,.07); border-radius:var(--r);
+  padding:1.75rem; margin-bottom:1rem;
+}
+.profile-header { display:flex; align-items:center; gap:1.25rem; margin-bottom:1.5rem; }
+.profile-avatar {
+  width:64px; height:64px; border-radius:50%; background:var(--red);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-h); font-size:1.8rem; font-weight:900; flex-shrink:0;
+}
+.profile-name { font-family:var(--font-h); font-size:1.4rem; font-weight:700; color:var(--white); }
+.profile-phone { font-size:.85rem; color:var(--muted); }
+.profile-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:.85rem 0; border-bottom:1px solid rgba(255,255,255,.05); cursor:pointer;
+}
+.profile-row:last-child { border-bottom:none; }
+.profile-row-left { font-size:.9rem; color:rgba(255,255,255,.65); display:flex; align-items:center; gap:.75rem; }
+.profile-row-right { font-size:.85rem; color:var(--muted); }
+.logout-btn {
+  width:100%; padding:.9rem; background:rgba(232,0,13,.08); border:1px solid rgba(232,0,13,.25);
+  border-radius:6px; color:var(--red); font-family:var(--font-h); font-size:.9rem;
+  font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-top:1.25rem; transition:all .25s;
+}
+.logout-btn:hover { background:rgba(232,0,13,.15); }
+
+/* ══ MODALS ══ */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(6px);
+  z-index:500; display:none; align-items:flex-end; justify-content:center; padding:1rem;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:var(--dark); border:1px solid rgba(255,255,255,.1); border-radius:16px 16px 0 0;
+  padding:2rem; width:100%; max-width:480px;
+  animation:slideUp .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-handle { width:36px; height:4px; background:rgba(255,255,255,.15); border-radius:2px; margin:0 auto 1.5rem; }
+.modal-title { font-family:var(--font-h); font-size:1.2rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--white); margin-bottom:1.25rem; }
+.modal-close {
+  position:absolute; top:1.25rem; right:1.5rem;
+  background:transparent; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer;
+}
+
+/* ══ PIN KEYPAD ══ */
+.pin-display { display:flex; justify-content:center; gap:.75rem; margin:1rem 0; }
+.pin-dot {
+  width:14px; height:14px; border-radius:50%;
+  border:2px solid rgba(255,255,255,.2); transition:all .2s;
+}
+.pin-dot.filled { background:var(--red); border-color:var(--red); }
+.keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; }
+.key {
+  background:var(--dark2); border:1px solid rgba(255,255,255,.08); border-radius:10px;
+  padding:1.1rem; font-family:var(--font-h); font-size:1.4rem; font-weight:700;
+  color:var(--white); text-align:center; cursor:pointer; transition:all .15s; user-select:none;
+}
+.key:hover  { background:var(--dark3); border-color:rgba(255,255,255,.2); }
+.key:active { transform:scale(.94); }
+.key.delete { font-size:1rem; color:var(--muted); }
+.key.empty  { background:transparent; border:none; cursor:default; }
+
+/* ══ TOAST ══ */
+#toast {
+  position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(30px);
+  background:var(--dark); border:1px solid rgba(34,197,94,.3); border-left:3px solid var(--green);
+  border-radius:8px; padding:.75rem 1.25rem; font-family:var(--font-h); font-size:.82rem;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--green); white-space:nowrap;
+  box-shadow:0 8px 32px rgba(0,0,0,.5); z-index:999; opacity:0;
+  transition:all .35s cubic-bezier(.34,1.56,.64,1);
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+#toast.error { border-left-color:#ef4444; border-color:rgba(239,68,68,.3); color:#ef4444; }
+
+/* ══ LOADING ══ */
+.loading { display:flex; align-items:center; justify-content:center; padding:3rem; gap:.75rem; color:var(--muted); }
+.spinner { width:20px; height:20px; border:2px solid rgba(255,255,255,.1); border-top-color:var(--red); border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ══ RESPONSIVE ══ */
+@media(min-width:480px) {
+  .modal { border-radius:16px; margin-bottom:2rem; }
+  .modal-overlay { align-items:center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ SPLASH ══ -->
+<div class="screen active" id="splash">
+  <div class="splash-logo">NE<span>RO</span></div>
+  <div class="splash-sub">Fuel Wallet</div>
+  <div class="splash-bar-wrap"><div class="splash-bar"></div></div>
+</div>
+
+<!-- ══ AUTH ══ -->
+<div class="screen" id="auth">
+  <div class="auth-box">
+    <div class="auth-logo">NE<span>RO</span></div>
+    <div class="auth-title">Fuel Wallet</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Create Account</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="auth-form" id="loginForm">
+      <div class="field">
+        <label>Phone Number</label>
+        <input type="tel" id="loginPhone" placeholder="+256 7XX XXX XXX" inputmode="tel">
+      </div>
+      <div class="field">
+        <label>4-Digit PIN</label>
+        <input type="password" id="loginPin" placeholder="••••" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="auth-error" id="loginError"></div>
+      <button class="btn-primary" id="loginBtn" onclick="handleLogin()">Sign In</button>
+      <p class="auth-note">Forgot your PIN? Contact your nearest NERO station.</p>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div class="auth-form hidden" id="registerForm">
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="e.g. John Mukasa">
+      </div>
+      <div class="field">
+        <label>Phone Number</label>
+        <input type="tel" id="regPhone" placeholder="+256 7XX XXX XXX" inputmode="tel">
+      </div>
+      <div class="field">
+        <label>Choose a 4-Digit PIN</label>
+        <input type="password" id="regPin" placeholder="••••" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Confirm PIN</label>
+        <input type="password" id="regPinConfirm" placeholder="••••" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="auth-error" id="registerError"></div>
+      <button class="btn-primary" id="registerBtn" onclick="handleRegister()">Create Account</button>
+      <p class="auth-note">By creating an account you agree to NERO's terms of service.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div class="screen" id="app">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-logo">NE<span>RO</span> <span style="font-size:.7rem;color:var(--muted);font-weight:400;letter-spacing:.1em;">WALLET</span></div>
+    <div class="topbar-right">
+      <div style="font-family:var(--font-h);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">Balance</div>
+      <div style="font-family:var(--font-h);font-size:1.1rem;font-weight:900;color:var(--red);" id="topbarBalance">UGX 0</div>
+    </div>
+  </div>
+
+  <!-- Tab content -->
+  <div class="content" id="homeTab">
+
+    <!-- Balance card -->
+    <div class="balance-card">
+      <div class="balance-card-label">Available Balance</div>
+      <div class="balance-amount"><span class="currency">UGX</span><span id="balanceAmount">0</span></div>
+      <div class="balance-card-name" id="cardName">—</div>
+      <div class="balance-card-number" id="cardNumber">—</div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="quick-actions">
+      <div class="quick-btn" onclick="showTab('topupTab')">
+        <span class="qi">💳</span>Top Up
+      </div>
+      <div class="quick-btn" onclick="showTab('qrTab')">
+        <span class="qi">📲</span>My QR
+      </div>
+      <div class="quick-btn" onclick="showTab('historyTab')">
+        <span class="qi">📋</span>History
+      </div>
+    </div>
+
+    <!-- Recent transactions -->
+    <div class="sec-head">
+      Recent Transactions
+      <a onclick="showTab('historyTab')">View all</a>
+    </div>
+    <div class="tx-list" id="recentTxList">
+      <div class="loading"><div class="spinner"></div> Loading…</div>
+    </div>
+
+  </div><!-- /homeTab -->
+
+  <!-- QR Tab -->
+  <div class="content" id="qrTab" style="display:none;">
+    <div class="qr-wrap">
+      <div class="qr-label">Present this code at any NERO station</div>
+      <div class="qr-box" id="qrContainer"></div>
+      <div class="qr-name" id="qrName">—</div>
+      <div class="qr-number" id="qrNumber">—</div>
+    </div>
+    <div class="qr-tip">
+      Show this QR code to the fuel attendant. They will scan it and deduct the fuel amount from your balance automatically.<br><br>
+      Your code is unique and tied to your account — keep it safe.
+    </div>
+    <button class="btn-primary" style="margin-top:1.25rem;" onclick="downloadQR()">📥 Save QR Code</button>
+  </div>
+
+  <!-- Top Up Tab -->
+  <div class="content" id="topupTab" style="display:none;">
+    <div class="sec-head" style="margin-bottom:1rem;">Choose Amount</div>
+
+    <div class="topup-amount-grid">
+      <button class="amount-btn" onclick="selectAmount(10000)">UGX 10K</button>
+      <button class="amount-btn" onclick="selectAmount(20000)">UGX 20K</button>
+      <button class="amount-btn" onclick="selectAmount(50000)">UGX 50K</button>
+      <button class="amount-btn" onclick="selectAmount(100000)">UGX 100K</button>
+      <button class="amount-btn" onclick="selectAmount(200000)">UGX 200K</button>
+      <button class="amount-btn" onclick="selectAmount(500000)">UGX 500K</button>
+    </div>
+
+    <div class="field" style="margin-bottom:1.25rem;">
+      <label>Or enter custom amount (UGX)</label>
+      <input type="number" id="customAmount" placeholder="e.g. 75000" inputmode="numeric" min="5000" max="5000000" oninput="clearAmountSelection()">
+    </div>
+
+    <div class="sec-head" style="margin-bottom:.75rem;">Payment Method</div>
+    <div class="method-grid">
+      <div class="method-btn mtn" onclick="selectMethod('mtn')">
+        <span class="mi">📱</span>MTN MoMo
+      </div>
+      <div class="method-btn airtel" onclick="selectMethod('airtel')">
+        <span class="mi">📱</span>Airtel Money
+      </div>
+      <div class="method-btn card" onclick="selectMethod('card')">
+        <span class="mi">💳</span>Debit Card
+      </div>
+      <div class="method-btn paypal" onclick="selectMethod('paypal')">
+        <span class="mi">🅿️</span>PayPal
+      </div>
+    </div>
+
+    <div id="momoFields" style="display:none;">
+      <div class="field">
+        <label id="momoLabel">MTN Mobile Money Number</label>
+        <input type="tel" id="momoNumber" placeholder="+256 77X XXX XXX" inputmode="tel">
+      </div>
+    </div>
+
+    <div id="topupError" class="auth-error"></div>
+    <button class="btn-primary" id="topupBtn" onclick="initiateTopup()">Continue to Payment</button>
+    <p style="font-size:.75rem;color:var(--muted);text-align:center;margin-top:.75rem;">
+      Payments are processed securely via Flutterwave. NERO does not store your card details.
+    </p>
+  </div>
+
+  <!-- History Tab -->
+  <div class="content" id="historyTab" style="display:none;">
+    <div class="sec-head" style="margin-bottom:1rem;">All Transactions</div>
+    <div class="tx-list" id="fullTxList">
+      <div class="loading"><div class="spinner"></div> Loading…</div>
+    </div>
+  </div>
+
+  <!-- Profile Tab -->
+  <div class="content" id="profileTab" style="display:none;">
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatar">?</div>
+        <div>
+          <div class="profile-name" id="profileName">—</div>
+          <div class="profile-phone" id="profilePhone">—</div>
+        </div>
+      </div>
+      <div class="profile-row" onclick="showChangePinModal()">
+        <div class="profile-row-left">🔑 Change PIN</div>
+        <div class="profile-row-right">›</div>
+      </div>
+      <div class="profile-row">
+        <div class="profile-row-left">📱 Notifications</div>
+        <div class="profile-row-right">On ›</div>
+      </div>
+      <div class="profile-row">
+        <div class="profile-row-left">❓ Help & Support</div>
+        <div class="profile-row-right">›</div>
+      </div>
+      <div class="profile-row">
+        <div class="profile-row-left" style="font-size:.82rem;color:var(--muted);">Account ID: <span id="profileId" style="letter-spacing:.08em;"></span></div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" id="nav-home" onclick="showTab('homeTab');setNav('home')">
+      <span class="tab-icon">🏠</span>Home
+    </button>
+    <button class="tab-btn" id="nav-qr" onclick="showTab('qrTab');setNav('qr')">
+      <span class="tab-icon">📲</span>My QR
+    </button>
+    <button class="tab-btn" id="nav-topup" onclick="showTab('topupTab');setNav('topup')">
+      <span class="tab-icon">💳</span>Top Up
+    </button>
+    <button class="tab-btn" id="nav-history" onclick="showTab('historyTab');setNav('history');loadFullHistory()">
+      <span class="tab-icon">📋</span>History
+    </button>
+    <button class="tab-btn" id="nav-profile" onclick="showTab('profileTab');setNav('profile')">
+      <span class="tab-icon">👤</span>Profile
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- ══ CHANGE PIN MODAL ══ -->
+<div class="modal-overlay" id="changePinModal">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeModal('changePinModal')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">Change PIN</div>
+    <div class="field"><label>Current PIN</label><input type="password" id="oldPin" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+    <div class="field"><label>New PIN</label><input type="password" id="newPin" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+    <div class="field"><label>Confirm New PIN</label><input type="password" id="newPinConfirm" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+    <div class="auth-error" id="pinChangeError"></div>
+    <button class="btn-primary" style="margin-top:.5rem;" onclick="handleChangePin()">Update PIN</button>
+  </div>
+</div>
+
+<!-- ══ TOPUP PROCESSING MODAL ══ -->
+<div class="modal-overlay" id="topupModal">
+  <div class="modal" style="position:relative;text-align:center;">
+    <button class="modal-close" onclick="closeModal('topupModal')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="topupModalTitle">Processing Payment</div>
+    <div id="topupModalBody">
+      <div style="font-size:3rem;margin:1rem 0;" id="topupModalIcon">⏳</div>
+      <p id="topupModalMsg" style="color:var(--muted);font-size:.9rem;line-height:1.7;"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div id="toast"></div>
+
+<!-- ════════════════════════════
+     FIREBASE + APP LOGIC
+════════════════════════════ -->
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+         signOut, onAuthStateChanged, updatePassword }
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection,
+         query, where, orderBy, limit, getDocs, onSnapshot, updateDoc, increment, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+/* ── Firebase init ── */
+const app  = initializeApp({
+  apiKey:"AIzaSyB-Q-MFZDCgHnaVgMRrgxEL9YPrIqZwUrU",
+  authDomain:"redfuel-a2152.firebaseapp.com",
+  projectId:"redfuel-a2152",
+  storageBucket:"redfuel-a2152.firebasestorage.app",
+  messagingSenderId:"782154176195",
+  appId:"1:782154176195:web:46af20e4252e415ba77476"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+/* ── State ── */
+let _customer   = null;
+let _selectedAmount = 0;
+let _selectedMethod = null;
+
+/* ── Splash → Auth or App ── */
+setTimeout(() => {
+  document.getElementById("splash").classList.remove("active");
+}, 2000);
+
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    const snap = await getDoc(doc(db,"customers",user.uid));
+    if (snap.exists()) {
+      _customer = { uid: user.uid, ...snap.data() };
+      showScreen("app");
+      populateApp();
+      subscribeBalance();
+      loadRecentTx();
+      generateQR();
+    }
+  } else {
+    setTimeout(() => showScreen("auth"), 2000);
+  }
+});
+
+/* ══════════════════════════════════
+   AUTH
+══════════════════════════════════ */
+
+/* Phone → email conversion (Firebase needs email format) */
+function phoneToEmail(phone) {
+  const cleaned = phone.replace(/\s|\+|-/g,"");
+  return `${cleaned}@nero-wallet.app`;
+}
+
+/* Hash PIN using SHA-256 */
+async function hashPin(pin) {
+  const buf  = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin + "nero_salt_2026"));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+/* Generate unique account number */
+function genAccountNumber() {
+  return "NRO" + Date.now().toString().slice(-7) + Math.floor(Math.random()*1000).toString().padStart(3,"0");
+}
+
+window.handleRegister = async () => {
+  const name    = document.getElementById("regName").value.trim();
+  const phone   = document.getElementById("regPhone").value.trim();
+  const pin     = document.getElementById("regPin").value;
+  const pinConf = document.getElementById("regPinConfirm").value;
+  const errEl   = document.getElementById("registerError");
+  errEl.style.display = "none";
+
+  if (!name || !phone || !pin || !pinConf) { showAuthError(errEl,"Please fill in all fields."); return; }
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { showAuthError(errEl,"PIN must be exactly 4 digits."); return; }
+  if (pin !== pinConf) { showAuthError(errEl,"PINs do not match."); return; }
+  if (!phone.match(/^(\+256|0)[37]\d{8}$/)) { showAuthError(errEl,"Please enter a valid Ugandan phone number."); return; }
+
+  const btn = document.getElementById("registerBtn");
+  btn.disabled = true; btn.textContent = "Creating account…";
+
+  try {
+    const email   = phoneToEmail(phone);
+    const pinHash = await hashPin(pin);
+    const accNum  = genAccountNumber();
+
+    /* Create Firebase auth user */
+    const cred = await createUserWithEmailAndPassword(auth, email, pin + "_nero");
+
+    /* Create Firestore customer document */
+    await setDoc(doc(db,"customers",cred.user.uid), {
+      name, phone, email,
+      pinHash,
+      accountNumber: accNum,
+      balance:       0,
+      status:        "active",
+      createdAt:     serverTimestamp(),
+      lastLogin:     serverTimestamp(),
+    });
+
+    _showToast("Account created! Welcome to NERO Wallet ✓");
+
+  } catch(err) {
+    const msgs = {
+      "auth/email-already-in-use": "An account with this phone number already exists.",
+      "auth/weak-password":        "PIN is too weak. Use a different 4-digit PIN.",
+    };
+    showAuthError(errEl, msgs[err.code] || "Registration failed. Please try again.");
+  } finally { btn.disabled=false; btn.textContent="Create Account"; }
+};
+
+window.handleLogin = async () => {
+  const phone = document.getElementById("loginPhone").value.trim();
+  const pin   = document.getElementById("loginPin").value;
+  const errEl = document.getElementById("loginError");
+  errEl.style.display = "none";
+
+  if (!phone || !pin) { showAuthError(errEl,"Please enter your phone number and PIN."); return; }
+
+  const btn = document.getElementById("loginBtn");
+  btn.disabled = true; btn.textContent = "Signing in…";
+
+  try {
+    const email = phoneToEmail(phone);
+    await signInWithEmailAndPassword(auth, email, pin + "_nero");
+    _showToast("Welcome back ✓");
+  } catch(err) {
+    const msgs = {
+      "auth/user-not-found":      "No account found with this phone number.",
+      "auth/wrong-password":      "Incorrect PIN. Please try again.",
+      "auth/invalid-credential":  "Incorrect phone number or PIN.",
+      "auth/too-many-requests":   "Too many attempts. Please wait a few minutes.",
+    };
+    showAuthError(errEl, msgs[err.code] || "Login failed. Check your details.");
+  } finally { btn.disabled=false; btn.textContent="Sign In"; }
+};
+
+window.handleLogout = async () => {
+  if (confirm("Sign out of NERO Wallet?")) {
+    await signOut(auth);
+    showScreen("auth");
+    _customer = null;
+  }
+};
+
+/* ══════════════════════════════════
+   APP POPULATION
+══════════════════════════════════ */
+function populateApp() {
+  if (!_customer) return;
+  const fmt = n => n.toLocaleString("en-UG");
+  const initials = _customer.name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+
+  document.getElementById("balanceAmount").textContent    = fmt(_customer.balance || 0);
+  document.getElementById("topbarBalance").textContent    = `UGX ${fmt(_customer.balance || 0)}`;
+  document.getElementById("cardName").textContent         = _customer.name;
+  document.getElementById("cardNumber").textContent       = _customer.accountNumber;
+  document.getElementById("profileName").textContent      = _customer.name;
+  document.getElementById("profilePhone").textContent     = _customer.phone;
+  document.getElementById("profileId").textContent        = _customer.accountNumber;
+  document.getElementById("profileAvatar").textContent    = initials;
+  document.querySelector(".avatar")                       && (document.querySelector(".avatar").textContent = initials);
+
+  document.getElementById("qrName").textContent   = _customer.name;
+  document.getElementById("qrNumber").textContent = _customer.accountNumber;
+}
+
+/* Live balance subscription */
+function subscribeBalance() {
+  if (!_customer) return;
+  onSnapshot(doc(db,"customers",_customer.uid), snap => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    _customer  = { ..._customer, ...data };
+    const fmt  = n => n.toLocaleString("en-UG");
+    document.getElementById("balanceAmount").textContent = fmt(data.balance || 0);
+    document.getElementById("topbarBalance").textContent = `UGX ${fmt(data.balance || 0)}`;
+  });
+}
+
+/* ══════════════════════════════════
+   TRANSACTIONS
+══════════════════════════════════ */
+async function loadRecentTx() {
+  const el = document.getElementById("recentTxList");
+  try {
+    const q    = query(collection(db,"transactions"),
+                  where("customerId","==",_customer.uid),
+                  orderBy("timestamp","desc"), limit(5));
+    const snap = await getDocs(q);
+    renderTxList(snap, el, 5);
+  } catch(e) { el.innerHTML=`<div class="tx-empty">No transactions yet.</div>`; }
+}
+
+window.loadFullHistory = async () => {
+  const el = document.getElementById("fullTxList");
+  el.innerHTML = `<div class="loading"><div class="spinner"></div> Loading…</div>`;
+  try {
+    const q    = query(collection(db,"transactions"),
+                  where("customerId","==",_customer.uid),
+                  orderBy("timestamp","desc"), limit(50));
+    const snap = await getDocs(q);
+    renderTxList(snap, el, 50);
+  } catch(e) { el.innerHTML=`<div class="tx-empty">Could not load history.</div>`; }
+};
+
+function renderTxList(snap, el, maxItems) {
+  el.innerHTML = "";
+  if (snap.empty) { el.innerHTML=`<div class="tx-empty">No transactions yet. Top up to get started!</div>`; return; }
+  snap.forEach(d => {
+    const tx   = d.data();
+    const type = tx.type || "deduct";
+    const date = tx.timestamp?.toDate?.() || new Date();
+    const fmt  = date.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) +
+                 " " + date.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+    const icons = { topup:"💰", deduct:"⛽", refund:"↩️", cash_topup:"💵" };
+    const labels = {
+      topup:      `Top Up via ${tx.method||""}`,
+      deduct:     `Fuel — ${tx.stationName||"NERO Station"} ${tx.litres ? `(${tx.litres}L)` : ""}`,
+      refund:     "Refund",
+      cash_topup: "Cash Top Up"
+    };
+    const sign  = type==="deduct" ? "-" : "+";
+    const item  = document.createElement("div");
+    item.className = "tx-item";
+    item.innerHTML = `
+      <div class="tx-icon ${type}">${icons[type]||"💳"}</div>
+      <div class="tx-body">
+        <div class="tx-title">${labels[type]||type}</div>
+        <div class="tx-meta">${fmt}</div>
+      </div>
+      <div class="tx-amount ${type}">${sign}UGX ${(tx.amount||0).toLocaleString("en-UG")}</div>`;
+    el.appendChild(item);
+  });
+}
+
+/* ══════════════════════════════════
+   QR CODE
+══════════════════════════════════ */
+function generateQR() {
+  if (!_customer) return;
+  const container = document.getElementById("qrContainer");
+  container.innerHTML = "";
+  const payload = JSON.stringify({
+    id:   _customer.uid,
+    acc:  _customer.accountNumber,
+    name: _customer.name,
+    v:    1
+  });
+  new QRCode(container, {
+    text:   payload,
+    width:  200,
+    height: 200,
+    colorDark:  "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+window.downloadQR = () => {
+  const canvas = document.querySelector("#qrContainer canvas");
+  if (!canvas) { _showToast("QR not ready yet","error"); return; }
+  const a = document.createElement("a");
+  a.download = `NERO-Wallet-${_customer.accountNumber}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+  _showToast("QR code saved ✓");
+};
+
+/* ══════════════════════════════════
+   TOP UP
+══════════════════════════════════ */
+window.selectAmount = (amount) => {
+  _selectedAmount = amount;
+  document.querySelectorAll(".amount-btn").forEach(b => b.classList.remove("selected"));
+  event.target.classList.add("selected");
+  document.getElementById("customAmount").value = "";
+};
+
+window.clearAmountSelection = () => {
+  _selectedAmount = 0;
+  document.querySelectorAll(".amount-btn").forEach(b => b.classList.remove("selected"));
+};
+
+window.selectMethod = (method) => {
+  _selectedMethod = method;
+  document.querySelectorAll(".method-btn").forEach(b => b.classList.remove("selected"));
+  event.currentTarget.classList.add("selected");
+
+  const momoFields = document.getElementById("momoFields");
+  const momoLabel  = document.getElementById("momoLabel");
+  momoFields.style.display = (method==="mtn"||method==="airtel") ? "block" : "none";
+  if (method==="mtn")    momoLabel.textContent = "MTN Mobile Money Number";
+  if (method==="airtel") momoLabel.textContent = "Airtel Money Number";
+};
+
+window.initiateTopup = async () => {
+  const customAmt = parseFloat(document.getElementById("customAmount").value);
+  const amount    = customAmt || _selectedAmount;
+  const errEl     = document.getElementById("topupError");
+  errEl.style.display = "none";
+
+  if (!amount || amount < 5000)  { showAuthError(errEl,"Minimum top-up is UGX 5,000.");   return; }
+  if (amount > 5000000)          { showAuthError(errEl,"Maximum top-up is UGX 5,000,000."); return; }
+  if (!_selectedMethod)          { showAuthError(errEl,"Please select a payment method."); return; }
+
+  /* MTN/Airtel need a phone number */
+  if (_selectedMethod==="mtn"||_selectedMethod==="airtel") {
+    const momoNum = document.getElementById("momoNumber").value.trim();
+    if (!momoNum) { showAuthError(errEl,"Please enter your mobile money number."); return; }
+  }
+
+  /* Show processing modal */
+  openModal("topupModal");
+  document.getElementById("topupModalTitle").textContent = "Processing Payment";
+  document.getElementById("topupModalIcon").textContent  = "⏳";
+  document.getElementById("topupModalMsg").textContent   =
+    _selectedMethod==="mtn"    ? `Check your MTN phone for a payment prompt of UGX ${amount.toLocaleString("en-UG")} and enter your MoMo PIN to confirm.` :
+    _selectedMethod==="airtel" ? `Check your Airtel phone for a payment prompt of UGX ${amount.toLocaleString("en-UG")} and enter your PIN to confirm.`    :
+    _selectedMethod==="card"   ? "You will be redirected to our secure card payment page."  :
+    _selectedMethod==="paypal" ? "You will be redirected to PayPal to complete payment."    :
+    "Please follow the payment instructions.";
+
+  /* In production: call Flutterwave API here via Cloud Function */
+  /* For now: simulate with a pending topup record */
+  try {
+    await addDoc(collection(db,"topups"), {
+      customerId:    _customer.uid,
+      accountNumber: _customer.accountNumber,
+      amount:        amount,
+      method:        _selectedMethod,
+      momoNumber:    document.getElementById("momoNumber")?.value?.trim() || null,
+      status:        "pending",
+      reference:     "FLW_" + Date.now(),
+      timestamp:     serverTimestamp(),
+    });
+
+    /* Simulate Flutterwave redirect for card/PayPal */
+    if (_selectedMethod==="card"||_selectedMethod==="paypal") {
+      setTimeout(() => {
+        /* In production this would be a real Flutterwave hosted payment link */
+        document.getElementById("topupModalIcon").textContent = "🔗";
+        document.getElementById("topupModalMsg").textContent  = "In production, you would be redirected to Flutterwave's secure payment page. Contact NERO to set up live payment processing.";
+      }, 1500);
+    } else {
+      /* Simulate MoMo success after 5 seconds (in production: webhook fires) */
+      setTimeout(async () => {
+        document.getElementById("topupModalIcon").textContent = "✅";
+        document.getElementById("topupModalTitle").textContent = "Payment Received!";
+        document.getElementById("topupModalMsg").textContent   =
+          `UGX ${amount.toLocaleString("en-UG")} has been added to your NERO Wallet. Your new balance will update in a moment.`;
+
+        /* In production: Cloud Function handles this after Flutterwave webhook */
+        /* For demo: directly update balance */
+        await updateDoc(doc(db,"customers",_customer.uid), {
+          balance: increment(amount)
+        });
+        await addDoc(collection(db,"transactions"), {
+          customerId:    _customer.uid,
+          accountNumber: _customer.accountNumber,
+          type:          "topup",
+          method:        _selectedMethod,
+          amount:        amount,
+          balanceBefore: _customer.balance,
+          balanceAfter:  (_customer.balance||0) + amount,
+          status:        "success",
+          timestamp:     serverTimestamp(),
+        });
+        _showToast(`UGX ${amount.toLocaleString("en-UG")} added to wallet ✓`);
+        loadRecentTx();
+      }, 5000);
+    }
+
+  } catch(e) {
+    document.getElementById("topupModalIcon").textContent = "❌";
+    document.getElementById("topupModalTitle").textContent = "Payment Failed";
+    document.getElementById("topupModalMsg").textContent = "Something went wrong. Please try again.";
+  }
+};
+
+/* ══════════════════════════════════
+   CHANGE PIN
+══════════════════════════════════ */
+window.handleChangePin = async () => {
+  const oldPin   = document.getElementById("oldPin").value;
+  const newPin   = document.getElementById("newPin").value;
+  const confPin  = document.getElementById("newPinConfirm").value;
+  const errEl    = document.getElementById("pinChangeError");
+  errEl.style.display = "none";
+
+  if (!oldPin||!newPin||!confPin) { showAuthError(errEl,"Please fill in all fields."); return; }
+  if (newPin.length!==4||!/^\d{4}$/.test(newPin)) { showAuthError(errEl,"New PIN must be 4 digits."); return; }
+  if (newPin!==confPin) { showAuthError(errEl,"New PINs do not match."); return; }
+
+  try {
+    const oldHash = await hashPin(oldPin);
+    if (oldHash !== _customer.pinHash) { showAuthError(errEl,"Current PIN is incorrect."); return; }
+
+    const newHash = await hashPin(newPin);
+    await updateDoc(doc(db,"customers",_customer.uid), { pinHash: newHash });
+    await updatePassword(auth.currentUser, newPin + "_nero");
+
+    closeModal("changePinModal");
+    _showToast("PIN updated successfully ✓");
+  } catch(e) { showAuthError(errEl,"Failed to update PIN. Please try again."); }
+};
+
+/* ══════════════════════════════════
+   UI HELPERS
+══════════════════════════════════ */
+window.showScreen = (id) => {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+};
+
+window.showTab = (id) => {
+  ["homeTab","qrTab","topupTab","historyTab","profileTab"].forEach(t => {
+    document.getElementById(t).style.display = (t===id) ? "block" : "none";
+  });
+};
+
+window.setNav = (name) => {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(`nav-${name}`)?.classList.add("active");
+};
+
+window.switchAuthTab = (tab) => {
+  document.querySelectorAll(".auth-tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".auth-form").forEach(f => f.classList.add("hidden"));
+  event.target.classList.add("active");
+  document.getElementById(tab==="login" ? "loginForm" : "registerForm").classList.remove("hidden");
+};
+
+window.openModal = (id) => { document.getElementById(id).classList.add("open"); };
+window.closeModal = (id) => { document.getElementById(id).classList.remove("open"); };
+
+window.showChangePinModal = () => { openModal("changePinModal"); };
+
+function showAuthError(el, msg) { el.textContent=msg; el.style.display="block"; }
+
+window._showToast = (msg, type="success") => {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = type==="error" ? "error" : "";
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3500);
+};
+
+</script>
+</body>
+</html>
