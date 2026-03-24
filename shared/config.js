@@ -5,7 +5,7 @@
 
 // ── Firebase (same project as your NERO website) ──
 export const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyB-Q-MFZDCgHnaVgMRrgxEL9YPrIqZwUrU",
+  apiKey:            "AIzaSyA5KJn-Qvseh2BTs3091npF2IMMtWtAVus",
   authDomain:        "redfuel-a2152.firebaseapp.com",
   projectId:         "redfuel-a2152",
   storageBucket:     "redfuel-a2152.firebasestorage.app",
